@@ -23,6 +23,138 @@ contract KiyuTest is Test {
         return kiyu.send{value: 1 ether}(ali);
     }
 
+    // ---------- Screening ----------
+
+    function test_OwnerCanBlock() public {
+        kiyu.setBlocked(mei, true);
+        assertTrue(kiyu.blocked(mei));
+    }
+
+    function test_OthersCannotBlock() public {
+        vm.prank(mei);
+        vm.expectRevert("Not owner");
+        kiyu.setBlocked(ali, true);
+    }
+
+    function test_BlockedSenderCannotSend() public {
+        kiyu.setBlocked(jay, true);
+        vm.prank(jay);
+        vm.expectRevert("Sender is blocked");
+        kiyu.send{value: 1 ether}(ali);
+    }
+
+    function test_CannotSendToBlockedRecipient() public {
+        kiyu.setBlocked(ali, true);
+        vm.prank(jay);
+        vm.expectRevert("Recipient is blocked");
+        kiyu.send{value: 1 ether}(ali);
+    }
+
+    function test_CannotAcceptIfSenderBlockedLater() public {
+        uint256 id = _jaySendsToAli();
+        kiyu.setBlocked(jay, true);
+        vm.prank(ali);
+        vm.expectRevert("Sender is blocked");
+        kiyu.accept(id);
+    }
+
+    function test_CanStillRejectIfSenderBlocked() public {
+        uint256 id = _jaySendsToAli();
+        kiyu.setBlocked(jay, true);
+        vm.prank(ali);
+        kiyu.reject(id);
+        assertEq(ali.balance, 0);
+    }
+
+    // ---------- Community reports + votes ----------
+
+    address r1 = address(0x11);
+    address r2 = address(0x12);
+    address r3 = address(0x13);
+    address r4 = address(0x14);
+    address r5 = address(0x15);
+    address r6 = address(0x16);
+    address r7 = address(0x17);
+
+    function _addReviewers() internal {
+        kiyu.setReviewer(r1, true);
+        kiyu.setReviewer(r2, true);
+        kiyu.setReviewer(r3, true);
+        kiyu.setReviewer(r4, true);
+        kiyu.setReviewer(r5, true);
+        kiyu.setReviewer(r6, true);
+        kiyu.setReviewer(r7, true);
+    }
+
+    function test_RecipientCanReport() public {
+        uint256 id = _jaySendsToAli();
+        vm.prank(ali);
+        kiyu.report(id);
+        assertEq(kiyu.reportCount(jay), 1);
+    }
+
+    function test_StrangerCannotReport() public {
+        uint256 id = _jaySendsToAli();
+        vm.prank(mei);
+        vm.expectRevert("Not the recipient");
+        kiyu.report(id);
+    }
+
+    function test_CannotReportSamePaymentTwice() public {
+        uint256 id = _jaySendsToAli();
+        vm.startPrank(ali);
+        kiyu.report(id);
+        vm.expectRevert("Already reported");
+        kiyu.report(id);
+        vm.stopPrank();
+    }
+
+    function test_CannotVoteWithoutReport() public {
+        _addReviewers();
+        vm.prank(r1);
+        vm.expectRevert("No reports");
+        kiyu.voteToBlock(jay);
+    }
+
+    function test_NonReviewerCannotVote() public {
+        vm.prank(ali);
+        vm.expectRevert("Not reviewer");
+        kiyu.voteToBlock(jay);
+    }
+
+    function test_ReviewerCannotVoteTwice() public {
+        _addReviewers();
+        uint256 id = _jaySendsToAli();
+        vm.prank(ali);
+        kiyu.report(id);
+        vm.startPrank(r1);
+        kiyu.voteToBlock(jay);
+        vm.expectRevert("Already voted");
+        kiyu.voteToBlock(jay);
+        vm.stopPrank();
+    }
+
+    function test_FiveVotesBlock() public {
+        _addReviewers();
+        uint256 id = _jaySendsToAli();
+        vm.prank(ali);
+        kiyu.report(id);
+
+        vm.prank(r1);
+        kiyu.voteToBlock(jay);
+        vm.prank(r2);
+        kiyu.voteToBlock(jay);
+        vm.prank(r3);
+        kiyu.voteToBlock(jay);
+        vm.prank(r4);
+        kiyu.voteToBlock(jay);
+        assertFalse(kiyu.blocked(jay));
+
+        vm.prank(r5);
+        kiyu.voteToBlock(jay);
+        assertTrue(kiyu.blocked(jay));
+    }
+
     // ---------- Send ----------
 
     function test_SendHoldsMoneyInContract() public {
