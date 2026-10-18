@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 contract Kiyu {
+    using SafeERC20 for IERC20;
 
     // ---------- Data types ----------
 
@@ -15,6 +19,8 @@ contract Kiyu {
     }
 
     // ---------- Storage ----------
+
+    IERC20 public immutable token;
 
     uint256 public constant WAIT_TIME = 7 days;
 
@@ -45,8 +51,9 @@ contract Kiyu {
 
     // ---------- Screening ----------
 
-    constructor() {
+    constructor(IERC20 _token) {
         owner = msg.sender;
+        token = _token;
     }
     
     modifier onlyOwner() {
@@ -100,25 +107,28 @@ contract Kiyu {
     // - always update status + emit before send money, otherwise hacker keep call accept() since the status always Pending
     // - e.g. reentrancy attack behind 2016 DAO hacking
 
-    function send(address recipient) public payable returns (uint256 id) {
-        require(msg.value > 0, "Must send some ETH");
+    function send(address recipient, uint256 amount) public returns (uint256 id) {
+        require(amount > 0, "Amount must be more than 0");
         require(recipient != address(0), "Invalid recipient");
         require(recipient != msg.sender, "Cannot send to yourself");
         require(!blocked[msg.sender], "Sender is blocked");
         require(!blocked[recipient], "Recipient is blocked");
-        
+
         id = nextId;
         nextId++;
 
         payments[id] = Payment({
             sender: msg.sender,
             recipient: recipient,
-            amount: msg.value,
+            amount: amount,
             deadline: block.timestamp + WAIT_TIME,
             status: Status.Pending
         });
 
-        emit Sent(id, msg.sender, recipient, msg.value);
+        emit Sent(id, msg.sender, recipient, amount);
+
+        // pull the tokens from sender into Kiyu
+        token.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function accept(uint256 id) public {
@@ -157,8 +167,7 @@ contract Kiyu {
     // ---------- Helper ----------
 
     function _pay(address to, uint256 amount) internal {
-        (bool ok, ) = to.call{value: amount}("");
-        require(ok, "ETH transfer failed");
+        token.safeTransfer(to, amount);
     }
 }
 

@@ -3,24 +3,30 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import "../src/Kiyu.sol";
+import "../src/MockUSDC.sol";
 
 contract KiyuTest is Test {
     Kiyu kiyu;
+    MockUSDC usdc;
+    uint256 constant USDC = 1e6;    // 1 USDC = 1,000,000 units (6 decimals)
     address jay = address(0x1);     // sender
     address ali = address(0x2);     // receiver
     address mei = address(0x3);     // stranger
 
     function setUp() public {
-        kiyu = new Kiyu();
-        vm.deal(jay, 10 ether);
+        usdc = new MockUSDC();
+        kiyu = new Kiyu(usdc);
+        usdc.mint(jay, 10 * USDC);
+        vm.prank(jay);
+        usdc.approve(address(kiyu), type(uint256).max);
     }
 
     // ---------- Helper ----------
-    // - Jay sends 1 ETH to Ali, returns the payment id
+    // - Jay sends 1 USDC to Ali, returns the payment id
 
     function _jaySendsToAli() internal returns (uint256) {
         vm.prank(jay);
-        return kiyu.send{value: 1 ether}(ali);
+        return kiyu.send(ali, 1 * USDC);
     }
 
     // ---------- Screening ----------
@@ -40,14 +46,14 @@ contract KiyuTest is Test {
         kiyu.setBlocked(jay, true);
         vm.prank(jay);
         vm.expectRevert("Sender is blocked");
-        kiyu.send{value: 1 ether}(ali);
+        kiyu.send(ali, 1 * USDC);
     }
 
     function test_CannotSendToBlockedRecipient() public {
         kiyu.setBlocked(ali, true);
         vm.prank(jay);
         vm.expectRevert("Recipient is blocked");
-        kiyu.send{value: 1 ether}(ali);
+        kiyu.send(ali, 1 * USDC);
     }
 
     function test_CannotAcceptIfSenderBlockedLater() public {
@@ -63,7 +69,7 @@ contract KiyuTest is Test {
         kiyu.setBlocked(jay, true);
         vm.prank(ali);
         kiyu.reject(id);
-        assertEq(ali.balance, 0);
+        assertEq(usdc.balanceOf(ali), 0);
     }
 
     // ---------- Community reports + votes ----------
@@ -157,23 +163,36 @@ contract KiyuTest is Test {
 
     // ---------- Send ----------
 
+    function test_CannotSendWithoutApproval() public {
+        usdc.mint(mei, 5 * USDC);       // Mei has USDC but never approved Kiyu
+        vm.prank(mei);
+        vm.expectRevert();              // the token itself refuses the tranfer
+        kiyu.send(ali, 1* USDC);
+    }
+
+    function test_CannotSendMoreThanBalance() public {
+        vm.prank(jay);
+        vm.expectRevert();              // Jay only has 10 USDC
+        kiyu.send(ali, 11* USDC);
+    }
+
     function test_SendHoldsMoneyInContract() public {
         _jaySendsToAli();
-        assertEq(address(kiyu).balance, 1 ether);
-        assertEq(ali.balance, 0);
-        assertEq(jay.balance, 9 ether);
+        assertEq(usdc.balanceOf(address(kiyu)), 1 * USDC);
+        assertEq(usdc.balanceOf(ali), 0);
+        assertEq(usdc.balanceOf(jay), 9 * USDC);
     }
 
     function test_CannotSendZero() public {
         vm.prank(jay);
-        vm.expectRevert("Must send some ETH");
-        kiyu.send{value: 0}(ali);
+        vm.expectRevert("Amount must be more than 0");
+        kiyu.send(ali, 0);
     }
 
     function test_CannotSendToYourself() public {
         vm.prank(jay);
         vm.expectRevert("Cannot send to yourself");
-        kiyu.send{value: 1 ether}(jay);
+        kiyu.send(jay, 1 * USDC);
     }
 
     // ---------- Accept ----------
@@ -182,8 +201,8 @@ contract KiyuTest is Test {
         uint256 id = _jaySendsToAli();
         vm.prank(ali);
         kiyu.accept(id);
-        assertEq(ali.balance, 1 ether);
-        assertEq(address(kiyu).balance, 0);
+        assertEq(usdc.balanceOf(ali), 1 * USDC);
+        assertEq(usdc.balanceOf(address(kiyu)), 0);
     }
 
     function test_StrangerCannotAccept() public {
@@ -216,8 +235,8 @@ contract KiyuTest is Test {
         uint256 id = _jaySendsToAli();
         vm.prank(ali);
         kiyu.reject(id);
-        assertEq(jay.balance, 10 ether);
-        assertEq(ali.balance, 0);
+        assertEq(usdc.balanceOf(jay), 10 * USDC);
+        assertEq(usdc.balanceOf(ali), 0);
     }
 
     function test_CannotAcceptAfterReject() public {
@@ -236,8 +255,8 @@ contract KiyuTest is Test {
         vm.warp(block.timestamp + 8 days);
         vm.prank(jay);
         kiyu.refund(id);
-        assertEq(address(kiyu).balance, 0);
-        assertEq(jay.balance, 10 ether);
+        assertEq(usdc.balanceOf(address(kiyu)), 0);
+        assertEq(usdc.balanceOf(jay), 10 * USDC);
     }
 
     function test_SenderCannotRefundEarly() public {
