@@ -597,14 +597,14 @@
   <div class="sheet-top"><b>Send</b><button class="close" data-close aria-label="Close">✕</button></div>
   <form id="sendForm" novalidate>
     <div class="amount-entry">
-      <input id="amount" type="number" step="0.001" min="0" placeholder="0" inputmode="decimal" aria-label="Amount in ETH">
-      <span>ETH</span>
+      <input id="amount" type="number" step="0.01" min="0" placeholder="0" inputmode="decimal" aria-label="Amount in ringgit">
+      <span>RM, sent as USDC</span>
     </div>
     <div class="to-field"><label for="to">To</label><input id="to" placeholder="0x… address" autocomplete="off" spellcheck="false"></div>
     <div class="list">
       <div><span class="k">Network fee</span><span class="v" id="feeOut">Enter details</span></div>
       <div><span class="k">Kiyu fee</span><span class="v">Free</span></div>
-      <div><span class="k">They receive, once they accept</span><span class="v" id="theyGet">0 ETH</span></div>
+      <div><span class="k">They receive, once they accept</span><span class="v" id="theyGet">RM 0.00</span></div>
       <div><span class="k">If they don't accept in 7 days</span><span class="v">You can take it back</span></div>
     </div>
     <button class="btn white full" id="sendBtn" type="submit">Send</button>
@@ -787,13 +787,23 @@
      PART B: the real app (talks to your Kiyu contract through MetaMask)
      ===================================================================== -->
 <script type="module">
-  import { createPublicClient, createWalletClient, custom, http, parseAbi, parseEther, formatEther, isAddress } from "https://esm.sh/viem@2.21.0";
+  import { createPublicClient, createWalletClient, custom, http, parseAbi, parseUnits, formatUnits, formatEther, isAddress } from "https://esm.sh/viem@2.21.0";
   import { anvil } from "https://esm.sh/viem@2.21.0/chains";
 
   // ---------- 1. Settings ----------
-  const KIYU = "0x5FbDB2315678afecb367f032d93F642f64180aa3";   // from your deploy output
+  const KIYU = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";   // "Kiyu deployed at" from your deploy output
+  const USDC = "0x5FbDB2315678afecb367f032d93F642f64180aa3";   // "MockUSDC deployed at"
+  const DECIMALS = 6;                                           // USDC: 1 USDC = 1,000,000 units
+  const RM_PER_USD = 4.08;                                      // fixed rate for now (Oct 2026). Later: fetch a live rate
+
+  // errors OpenZeppelin's ERC20 can throw, so we can show a friendly message
+  const tokenErrors = [
+    "error ERC20InsufficientBalance(address sender, uint256 balance, uint256 needed)",
+    "error ERC20InsufficientAllowance(address spender, uint256 allowance, uint256 needed)",
+  ];
   const abi = parseAbi([
-    "function send(address recipient) payable returns (uint256)",
+    ...tokenErrors,
+    "function send(address recipient, uint256 amount) returns (uint256)",
     "function accept(uint256 id)",
     "function reject(uint256 id)",
     "function refund(uint256 id)",
@@ -803,7 +813,13 @@
     "function blocked(address) view returns (bool)",
     "function paymentReported(uint256) view returns (bool)",
   ]);
-  const WORKING = { accept: "Accepting…", reject: "Declining…", report: "Reporting…", refund: "Taking it back…", send: "Sending…" };
+  const usdcAbi = parseAbi([
+    ...tokenErrors,
+    "function balanceOf(address) view returns (uint256)",
+    "function allowance(address owner, address spender) view returns (uint256)",
+    "function approve(address spender, uint256 amount) returns (bool)",
+  ]);
+  const WORKING = { approve: "Approving…", accept: "Accepting…", reject: "Declining…", report: "Reporting…", refund: "Taking it back…", send: "Sending…" };
   const DONE = { accept: "Accepted", reject: "Declined and returned", report: "Sender reported", refund: "Taken back", send: "Sent. Waiting for them to accept" };
 
   // ---------- 2. Connections ----------
@@ -816,6 +832,12 @@
   const $ = (id) => document.getElementById(id);
   const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
   const eth = (wei, dp = 4) => Number(formatEther(wei)).toLocaleString(undefined, { maximumFractionDigits: dp });
+  // money: amounts on the chain are USDC units; we show them as RM
+  const toUsd = (units) => Number(formatUnits(units, DECIMALS));
+  const money = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const rm = (units) => `RM ${money(toUsd(units) * RM_PER_USD)}`;
+  const usdcText = (units) => `${toUsd(units).toLocaleString("en-US", { maximumFractionDigits: 2 })} USDC`;
+  const rmToUnits = (rmAmount) => parseUnits((rmAmount / RM_PER_USD).toFixed(DECIMALS), DECIMALS);
   const me = () => account?.toLowerCase();
 
   let toastTimer;
@@ -825,6 +847,9 @@
   }
   function explain(e) {
     const text = e?.shortMessage || e?.message || "";
+    const err = e?.cause?.data?.errorName || e?.cause?.cause?.data?.errorName;
+    if (err === "ERC20InsufficientBalance") return "You don't have enough USDC for this";
+    if (err === "ERC20InsufficientAllowance") return "Kiyu wasn't approved to send this amount. Try again";
     if (/user rejected|denied/i.test(text)) return "Cancelled in your wallet";
     const reason = e?.cause?.reason || e?.cause?.data?.args?.[0];
     return reason || text.split("\n")[0] || "Something went wrong. Try again";
@@ -869,7 +894,7 @@
     const label = button?.textContent;
     if (button) { button.disabled = true; button.textContent = WORKING[fn]; }
     try {
-      const hash = await walletClient.writeContract({ address: KIYU, abi, functionName: fn, args, value, account });
+      const hash = await walletClient.writeContract({ address: KIYU, abi, functionName: fn, args, account });
       await publicClient.waitForTransactionReceipt({ hash });
       toast(DONE[fn]);
       closeSheets();
@@ -884,34 +909,57 @@
     }
   }
 
-  // ---------- 6. Send (live fee estimate) ----------
+  // ---------- 6. Send ----------
+  // Tokens need two steps: 1) approve Kiyu to take the amount, 2) send.
+  // If Kiyu is already approved for enough, we skip step 1.
   $("openSend").onclick = () => { openSheet("sendSheet"); setTimeout(() => $("amount").focus(), 300); };
   let feeTimer;
   function onSendInput() {
     const v = Number($("amount").value) || 0;
-    $("theyGet").textContent = `${v} ETH`;
-    $("sendBtn").textContent = v > 0 ? `Send ${v} ETH` : "Send";
+    $("theyGet").textContent = v > 0 ? `${usdcText(rmToUnits(v))} (RM ${money(v)})` : "RM 0.00";
+    $("sendBtn").textContent = v > 0 ? `Send RM ${money(v)}` : "Send";
     clearTimeout(feeTimer); feeTimer = setTimeout(estimateFee, 300);
   }
   $("amount").oninput = onSendInput; $("to").oninput = onSendInput;
 
+  const allowanceOf = () => publicClient.readContract({ address: USDC, abi: usdcAbi, functionName: "allowance", args: [account, KIYU] });
+
   async function estimateFee() {
-    const to = $("to").value.trim(), amount = $("amount").value;
-    if (!isAddress(to) || !(Number(amount) > 0)) { $("feeOut").textContent = "Enter details"; return; }
+    const to = $("to").value.trim(), v = Number($("amount").value);
+    if (!isAddress(to) || !(v > 0)) { $("feeOut").textContent = "Enter details"; return; }
     try {
-      const gas = await publicClient.estimateContractGas({ address: KIYU, abi, functionName: "send", args: [to], value: parseEther(amount), account });
+      const units = rmToUnits(v);
       const price = await publicClient.getGasPrice();
-      $("feeOut").textContent = `≈ ${eth(gas * price, 6)} ETH`;
+      if ((await allowanceOf()) < units) {
+        // can't estimate "send" before approving, so estimate the approve step
+        const gas = await publicClient.estimateContractGas({ address: USDC, abi: usdcAbi, functionName: "approve", args: [KIYU, units], account });
+        $("feeOut").textContent = `≈ ${eth(gas * price * 3n, 6)} ETH (2 steps)`;
+      } else {
+        const gas = await publicClient.estimateContractGas({ address: KIYU, abi, functionName: "send", args: [to, units], account });
+        $("feeOut").textContent = `≈ ${eth(gas * price, 6)} ETH`;
+      }
     } catch (e) { $("feeOut").textContent = explain(e); }
   }
 
   $("sendForm").onsubmit = async (ev) => {
     ev.preventDefault();
-    const to = $("to").value.trim(), amount = $("amount").value;
-    if (!(Number(amount) > 0)) return toast("Enter an amount above 0");
+    const to = $("to").value.trim(), v = Number($("amount").value);
+    if (!(v > 0)) return toast("Enter an amount above 0");
     if (!isAddress(to)) return toast("Check the address. It starts with 0x and has 42 characters");
     if (to.toLowerCase() === me()) return toast("You can't send to yourself");
-    if (await write("send", [to], parseEther(amount), $("sendBtn"))) { $("sendForm").reset(); onSendInput(); }
+    const units = rmToUnits(v), btn = $("sendBtn"), label = btn.textContent;
+
+    // step 1: approve (only if needed)
+    if ((await allowanceOf()) < units) {
+      btn.disabled = true; btn.textContent = "Step 1 of 2: approving…";
+      try {
+        const hash = await walletClient.writeContract({ address: USDC, abi: usdcAbi, functionName: "approve", args: [KIYU, units], account });
+        await publicClient.waitForTransactionReceipt({ hash });
+      } catch (e) { toast(explain(e)); btn.disabled = false; btn.textContent = label; return; }
+      btn.disabled = false; btn.textContent = label;
+    }
+    // step 2: send
+    if (await write("send", [to, units], undefined, btn)) { $("sendForm").reset(); onSendInput(); }
   };
 
   // ---------- 7. Read ----------
@@ -921,9 +969,10 @@
     $("wrongNetwork").hidden = chainId === anvil.id;
 
     $("acct").textContent = short(account);
-    $("cardOwner").textContent = short(account);
-    const bal = Number(formatEther(await publicClient.getBalance({ address: account })));
-    countTo($("balance"), shownBalance ?? bal * .98, bal, shownBalance === null ? 1200 : 900);   // count up to the new balance
+    const units = await publicClient.readContract({ address: USDC, abi: usdcAbi, functionName: "balanceOf", args: [account] });
+    const bal = toUsd(units) * RM_PER_USD;                      // show the balance in RM
+    countTo($("balance"), shownBalance ?? bal * .98, bal, shownBalance === null ? 1200 : 900, "RM");   // count up to the new balance
+    $("cardOwner").textContent = usdcText(units);
     shownBalance = bal;
 
     now = (await publicClient.getBlock()).timestamp;
@@ -969,7 +1018,7 @@
     return `
       <button class="row" data-open="${p.id}">
         <span><span class="title">${who}</span><br><span class="sub">${subtitle(p)}</span></span>
-        <span class="right"><span class="amt ${voided ? "void" : ""}">${p.incoming ? "+" : "−"}${eth(p.amount)} ETH</span>${pill ? "<br>" + pill : ""}</span>
+        <span class="right"><span class="amt ${voided ? "void" : ""}">${p.incoming ? "+" : "−"}${rm(p.amount)}</span>${pill ? "<br>" + pill : ""}</span>
       </button>`;
   }
   // ---------- The wallet stack ----------
@@ -986,7 +1035,7 @@
     $("pends").innerHTML = shown.map((p, i) => `
       <button class="pend ${p.blocked ? "bad" : ""} ${p.id === selId ? "sel" : ""}" style="--i:${i}; z-index:${MAX_PEEK - i}" data-pick="${p.id}" aria-label="Payment from ${short(p.sender)}">
         <span><b>From ${short(p.sender)}</b><small>${p.blocked ? "Sender blocked" : (timeLeft(p) ?? "Expired")}</small></span>
-        <span class="num">+${eth(p.amount)}</span>
+        <span class="num">+${rm(p.amount)}</span>
       </button>`).join("");
     renderFront(waiting);
 
@@ -1019,7 +1068,7 @@
     $("front").innerHTML = `
       <div class="ftop">
         <span><b>From ${short(p.sender)}</b><small>${p.blocked ? "Blocked after reports. You can only send it back." : (left ? `${left} to decide` : "The 7 days are over")}</small></span>
-        <span class="famt">+${eth(p.amount)} ETH</span>
+        <span class="famt">+${rm(p.amount)}</span>
       </div>
       <div class="fbtns ${canAccept ? "" : "one"}">
         ${canAccept ? `<button class="btn white sm" data-fn="accept" data-id="${p.id}">Accept</button>` : ""}
@@ -1040,7 +1089,7 @@
     return `
       <button class="lrow" data-open="${p.id}">
         <span><b>${p.incoming ? `From ${short(p.sender)}` : `To ${short(p.recipient)}`}</b><small>${subtitle(p)}</small></span>
-        <span class="num ${cls}">${p.incoming ? "+" : "−"}${eth(p.amount)}</span>
+        <span class="num ${cls}">${p.incoming ? "+" : "−"}${rm(p.amount)}</span>
       </button>`;
   }
 
@@ -1106,7 +1155,7 @@
       { t: "Not accepted in time", s: p.incoming ? "Returned to the sender" : "Returned to you" },
     ][p.status];
     const steps = [
-      { t: "Sent", s: p.incoming ? `${short(p.sender)} sent ${eth(p.amount)} ETH` : `You sent ${eth(p.amount)} ETH` },
+      { t: "Sent", s: p.incoming ? `${short(p.sender)} sent ${usdcText(p.amount)}` : `You sent ${usdcText(p.amount)}` },
       { t: "Held by Kiyu", s: "Nobody can spend it while it waits" },
       last,
     ];
@@ -1121,8 +1170,8 @@
 
     $("dTitle").textContent = p.incoming ? "Incoming" : "Sent";
     $("detail").innerHTML = `
-      <p class="big-amt ${voided ? "void" : ""}">${p.incoming ? "+" : "−"}${eth(p.amount)} ETH</p>
-      <p class="big-sub">${p.incoming ? `From ${short(p.sender)}` : `To ${short(p.recipient)}`}</p>
+      <p class="big-amt ${voided ? "void" : ""}">${p.incoming ? "+" : "−"}${rm(p.amount)}</p>
+      <p class="big-sub">${usdcText(p.amount)}, ${p.incoming ? `from ${short(p.sender)}` : `to ${short(p.recipient)}`}</p>
       ${p.blocked && p.status === 0 ? `<div class="banner">This sender was blocked after reports. You can only decline.</div>` : ""}
       <ol class="track">
         ${steps.map((s) => `<li class="${s.now ? "now" : ""}"><span class="pip">${s.now ? "" : "✓"}</span><div><b>${s.t}</b><span>${s.s}</span></div></li>`).join("")}
