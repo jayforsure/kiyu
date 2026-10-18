@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+# kiyu: one command to run Kiyu locally.
+#   kiyu start                     start Anvil + deploy + website
+#   kiyu stop                      stop everything
+#   kiyu restart                   stop + start again (a fresh, empty chain)
+#   kiyu send jay ali 50           Jay sends 50 USDC to Ali (approves automatically)
+#   kiyu accept ali 0              Ali accepts payment #0
+#   kiyu decline ali 0             Ali declines payment #0
+#   kiyu refund jay 0              Jay takes back payment #0 (after 7 days)
+#   kiyu wait 8                    jump time forward 8 days (to test refunds)
+#   kiyu block mei                 the owner blocks Mei
+#   kiyu balance [name]            USDC balances
+#   kiyu payments                  list every payment
+#   kiyu demo                      fill the chain with sample payments
+set -euo pipefail
+
+# ---------- Settings ----------
+DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"   # the project folder
+RPC="http://127.0.0.1:8545"
+PORT=5173
+RUN="$DIR/.kiyu"                       # logs + process ids live here
+USDC="0x5FbDB2315678afecb367f032d93F642f64180aa3"
+KIYU="0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+FORGE_FLAGS="${FORGE_FLAGS:-}"         # extra flags for forge, if you ever need them
+
+# Anvil's built-in test accounts (public keys, only ever use them locally)
+declare -A ADDR=(
+  [jay]=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+  [ali]=0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+  [mei]=0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC
+)
+declare -A KEY=(
+  [jay]=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+  [ali]=0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+  [mei]=0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
+)
+STATUS=(Pending Accepted Declined Refunded)
+
+# ---------- Helpers ----------
+bold() { printf "\033[1m%s\033[0m\n" "$*"; }
+ok()   { printf "  \033[32m✓\033[0m %s\n" "$*"; }
+die()  { printf "  \033[31m✗\033[0m %s\n" "$*" >&2; exit 1; }
+
+who() {                                  # check a name and return it lowercased
+  local n="${1:-}"; n="${n,,}"
+  [[ -n "$n" && -n "${ADDR[$n]:-}" ]] || die "Unknown person '${1:-}'. Use: jay, ali or mei"
+  echo "$n"
+}
+units() { python3 -c "import sys; print(round(float(sys.argv[1]) * 10**6))" "$1"; }    # 50 -> 50000000
+usdc()  { python3 -c "import sys; print(f'{int(sys.argv[1]) / 10**6:,.2f}')" "$1"; }    # 50000000 -> 50.00
+num()   { echo "${1%% *}"; }             # cast prints "50000000 [5e7]", keep the first part
+running() { cast block-number --rpc-url "$RPC" >/dev/null 2>&1; }
+need_chain() { running || die "Kiyu isn't running. Start it with: kiyu start"; }
+tx() {                                   # send a transaction, explain common errors in plain words
+  cast send "$@" --rpc-url "$RPC" >/dev/null 2>"$RUN/last-error.log" && return
+  local e; e=$(cat "$RUN/last-error.log")
+  case "$e" in
+    *0xe450d38c*)  die "Not enough USDC for this" ;;                 # ERC20InsufficientBalance
+    *0xfb8f41b2*)  die "Kiyu wasn't approved for this amount" ;;     # ERC20InsufficientAllowance
+    *reverted:*)   die "Kiyu said no: $(grep -o 'reverted: [^,]*' <<<"$e" | head -1 | cut -d' ' -f2-)" ;;
+    *)             sed -n '1,3p' <<<"$e" >&2; die "Transaction failed" ;;
+  esac
+}
+name_of() {                              # address -> jay / ali / mei
+  local a="${1,,}"
+  for n in "${!ADDR[@]}"; do [[ "${ADDR[$n],,}" == "$a" ]] && { echo "$n"; return; }; done
+  echo "${1:0:6}…${1: -4}"
+}
+
+# ---------- Commands ----------
+cmd_start() {
+  mkdir -p "$RUN"
+  if running; then die "Kiyu is already running. Use 'kiyu stop' first, or 'kiyu restart'"; fi
+  bold "Starting Kiyu"
+  anvil > "$RUN/anvil.log" 2>&1 & echo $! > "$RUN/anvil.pid"
+  for _ in $(seq 1 30); do running && break; sleep 0.3; done
+  running || die "Anvil didn't start. See $RUN/anvil.log"
+  ok "Local blockchain running ($RPC)"
+
+  (cd "$DIR" && forge script script/DeployKiyu.s.sol --rpc-url "$RPC" --private-key "${KEY[jay]}" --broadcast $FORGE_FLAGS > "$RUN/deploy.log" 2>&1) \
+    || die "Deploy failed. See $RUN/deploy.log"
+  grep -q "$KIYU" "$RUN/deploy.log" || die "Kiyu deployed to an unexpected address. See $RUN/deploy.log"
+  ok "Kiyu + MockUSDC deployed (Jay, Ali and Mei have 10,000 USDC each)"
+
+  python3 -m http.server "$PORT" --directory "$DIR/web" > "$RUN/web.log" 2>&1 & echo $! > "$RUN/web.pid"   # $! = the server itself
+  sleep 0.5
+  ok "Website running"
+  echo
+  bold "  Open http://localhost:$PORT"
+  echo "  Try: kiyu demo   (adds sample payments)"
+  echo "  Stop: kiyu stop"
+}
+
+cmd_stop() {
+  for p in web anvil; do
+    if [[ -f "$RUN/$p.pid" ]]; then kill "$(cat "$RUN/$p.pid")" 2>/dev/null || true; rm -f "$RUN/$p.pid"; fi
+  done
+  # also stop an Anvil or website started some other way (e.g. typing "anvil" in another terminal)
+  pkill -x anvil 2>/dev/null || true
+  pkill -f "http.server $PORT" 2>/dev/null || true
+  for _ in $(seq 1 20); do running || break; sleep 0.2; done
+  ok "Kiyu stopped"
+}
+
+cmd_send() {
+  need_chain
+  local from to amt; from=$(who "${1:-}"); to=$(who "${2:-}"); amt="${3:-}"
+  [[ "$amt" =~ ^[0-9]+([.][0-9]+)?$ ]] || die "Usage: kiyu send <from> <to> <amount in USDC>   e.g. kiyu send jay ali 50"
+  local u; u=$(units "$amt")
+  tx "$USDC" "approve(address,uint256)" "$KIYU" "$u" --private-key "${KEY[$from]}"
+  local id; id=$(num "$(cast call "$KIYU" "nextId()(uint256)" --rpc-url "$RPC")")
+  tx "$KIYU" "send(address,uint256)" "${ADDR[$to]}" "$u" --private-key "${KEY[$from]}"
+  ok "${from^} sent $amt USDC to ${to^}. Payment #$id is waiting for ${to^} to accept"
+}
+
+decide() {                               # accept / reject / refund
+  need_chain
+  local fn="$1" label="$2" done="$3" person id; person=$(who "${4:-}"); id="${5:-}"
+  [[ "$id" =~ ^[0-9]+$ ]] || die "Usage: kiyu $label <name> <payment number>   e.g. kiyu $label ali 0"
+  tx "$KIYU" "$fn(uint256)" "$id" --private-key "${KEY[$person]}"
+  ok "${person^} $done payment #$id"
+}
+
+cmd_wait() {
+  need_chain
+  local d="${1:-}"; [[ "$d" =~ ^[0-9]+$ ]] || die "Usage: kiyu wait <days>   e.g. kiyu wait 8"
+  cast rpc evm_increaseTime $((d * 86400)) --rpc-url "$RPC" >/dev/null
+  cast rpc evm_mine --rpc-url "$RPC" >/dev/null
+  ok "Jumped $d days forward"
+}
+
+cmd_block() {
+  need_chain
+  local p; p=$(who "${1:-}")
+  tx "$KIYU" "setBlocked(address,bool)" "${ADDR[$p]}" true --private-key "${KEY[jay]}"
+  ok "${p^} is now blocked (Jay is the owner)"
+}
+
+cmd_balance() {
+  need_chain
+  local names=("${!ADDR[@]}"); [[ -n "${1:-}" ]] && names=("$(who "$1")")
+  for n in jay ali mei; do
+    [[ " ${names[*]} " == *" $n "* ]] || continue
+    printf "  %-4s %12s USDC\n" "${n^}" "$(usdc "$(num "$(cast call "$USDC" "balanceOf(address)(uint256)" "${ADDR[$n]}" --rpc-url "$RPC")")")"
+  done
+  printf "  %-4s %12s USDC  (held while payments wait)\n" "Kiyu" "$(usdc "$(num "$(cast call "$USDC" "balanceOf(address)(uint256)" "$KIYU" --rpc-url "$RPC")")")"
+}
+
+cmd_payments() {
+  need_chain
+  local total; total=$(num "$(cast call "$KIYU" "nextId()(uint256)" --rpc-url "$RPC")")
+  [[ "$total" -gt 0 ]] || { echo "  No payments yet. Try: kiyu send jay ali 50"; return; }
+  printf "  %-4s %-6s %-6s %12s  %s\n" "#" "From" "To" "USDC" "Status"
+  for ((i = 0; i < total; i++)); do
+    mapfile -t f < <(cast call "$KIYU" "payments(uint256)(address,address,uint256,uint256,uint8)" "$i" --rpc-url "$RPC")
+    printf "  %-4s %-6s %-6s %12s  %s\n" "$i" "$(name_of "${f[0]}")" "$(name_of "${f[1]}")" "$(usdc "$(num "${f[2]}")")" "${STATUS[$(num "${f[4]}")]}"
+  done
+}
+
+cmd_demo() {
+  need_chain
+  bold "Adding sample payments"
+  cmd_send jay ali 20;  decide reject decline declined ali 0
+  cmd_send mei ali 120; cmd_block mei
+  cmd_send jay ali 36.76
+  cmd_send jay ali 50;  decide accept accept accepted ali 3
+  cmd_send jay ali 12.25
+  echo; cmd_payments
+}
+
+usage() { sed -n '2,14p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+
+case "${1:-}" in
+  start)    cmd_start ;;
+  stop)     cmd_stop ;;
+  restart)  cmd_stop; sleep 1; cmd_start ;;
+  send)     shift; cmd_send "$@" ;;
+  accept)   shift; decide accept accept accepted "$@" ;;
+  decline)  shift; decide reject decline declined "$@" ;;
+  refund)   shift; decide refund refund "took back" "$@" ;;
+  wait)     shift; cmd_wait "$@" ;;
+  block)    shift; cmd_block "$@" ;;
+  balance)  shift; cmd_balance "$@" ;;
+  payments) cmd_payments ;;
+  demo)     cmd_demo ;;
+  *)        usage ;;
+esac
