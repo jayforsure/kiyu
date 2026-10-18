@@ -86,7 +86,8 @@ cmd_start() {
   sleep 0.5
   ok "Website running"
   echo
-  bold "  Open http://localhost:$PORT"
+  bold "  Open http://localhost:$PORT/?local"
+  echo "  (?local = use this local chain. Without it the site uses Sepolia)"
   echo "  Try: kiyu demo   (adds sample payments)"
   echo "  Stop: kiyu stop"
 }

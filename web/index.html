@@ -1090,7 +1090,6 @@
     .home.enter .home-head,
     .home.enter .actions,
     .home.enter .block,
-    .home.enter .front,
     .home.enter .pend {
       animation: rowIn .8s var(--ease) both;
     }
@@ -1116,7 +1115,6 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-bottom: 64px;
     }
 
     /* above the card's shadow */
@@ -1188,9 +1186,12 @@
       transform: translateY(var(--dy, 0px)) rotate(var(--rot, 0deg)) scale(var(--sc, 1));
       transition: transform .7s cubic-bezier(.3, 1.6, .4, 1), opacity .4s var(--ease), box-shadow .4s var(--ease),
         top .6s var(--ease), left .6s var(--ease), right .6s var(--ease);
+      /* springy: overshoots a little, then settles */
+      will-change: transform;
+      backface-visibility: hidden;
     }
 
-    /* springy: overshoots a little, then settles */
+    /* keep the card on its own layer all the time, so its text doesn't snap when the lift ends */
     .pend::after {
       content: "";
       position: absolute;
@@ -1250,6 +1251,29 @@
       font-weight: 600;
       font-size: 14px;
       display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .pend>span:first-child {
+      min-width: 0;
+    }
+
+    .pend .num {
+      white-space: nowrap;
+    }
+
+    @media (max-width: 430px) {
+      .pends .pend .num {
+        font-size: 20px;
+      }
+
+      .front .fmeta span {
+        display: none;
+      }
+
+      /* the drag tip doesn't fit on small phones */
     }
 
     .pend small {
@@ -1297,42 +1321,41 @@
       }
     }
 
+    /* only one set of choices at a time: Send/Receive normally, Accept/Decline while a card is picked */
+    /* Two "panes" stacked in the same spot. The area is always as tall as the bigger one,
+       so swapping them only cross-fades and Activity below never moves. */
+    .panes {
+      display: grid;
+      margin: 4px 0 56px;
+      position: relative;
+      z-index: 3;
+    }
+
+    /* always above the card's shadow, also while animating */
+    /* sits above Send/Receive, inside the same fixed-height area, so it costs no extra room */
     .stack-hint {
       text-align: center;
       color: var(--grey);
       font-size: 14px;
-      margin: -4px 0 20px;
+      margin: 0 0 20px;
     }
 
-    /* only one set of choices at a time: Send/Receive normally, Accept/Decline while a card is picked */
-    /* Two "panes" in the same spot. The one switched off folds its height to 0 and fades,
-       the other unfolds, so the page glides instead of jumping. */
     .pane {
-      display: grid;
-      grid-template-rows: 1fr;
+      grid-area: 1 / 1;
+      align-self: start;
       opacity: 1;
       transform: none;
-      transition: grid-template-rows .5s var(--ease), opacity .35s var(--ease), transform .5s var(--ease);
-    }
-
-    .pane>div {
-      overflow: hidden;
-      min-height: 0;
+      visibility: visible;
+      will-change: transform, opacity;
+      transition: opacity .35s var(--ease), transform .45s var(--ease), visibility 0s;
     }
 
     .pane.off {
-      grid-template-rows: 0fr;
       opacity: 0;
-      transform: translateY(-10px);
+      transform: translateY(8px);
+      visibility: hidden;
       pointer-events: none;
-    }
-
-    .stack-hint {
-      transition: opacity .3s var(--ease);
-    }
-
-    .stack-hint.off {
-      opacity: 0;
+      transition: opacity .25s var(--ease), transform .45s var(--ease), visibility 0s .25s;
     }
 
     /* the panel for the payment you picked */
@@ -1340,7 +1363,6 @@
       background: var(--group);
       border-radius: 22px;
       padding: 18px;
-      margin: 4px 0 56px;
       position: relative;
       z-index: 3;
     }
@@ -1351,8 +1373,8 @@
 
     @keyframes swap {
       from {
-        opacity: .3;
-        transform: translateY(6px);
+        opacity: .6;
+        transform: translateY(4px);
       }
     }
 
@@ -2085,8 +2107,8 @@
 
   <div class="splash" id="splash" aria-hidden="true"><span class="wordmark wait">kiyu</span></div>
 
-  <div class="notice" id="wrongNetwork" hidden>Your wallet is on a different network.<button id="switchNet">Switch to
-      Anvil Local</button></div>
+  <div class="notice" id="wrongNetwork" hidden>Your wallet is on a different network.<button id="switchNet">Switch
+      network</button></div>
 
   <header class="bar">
     <a class="wordmark wait" id="barMark" href="#" aria-label="Kiyu home">kiyu</a>
@@ -2256,14 +2278,12 @@
           </div>
         </div>
       </div>
-      <p class="stack-hint off" id="stackHint">Tap a waiting card to review it</p>
-      <div class="pane off" id="frontPane">
-        <div>
+      <div class="panes">
+        <div class="pane off" id="frontPane">
           <div class="front" id="front"></div>
         </div>
-      </div>
-      <div class="pane" id="actPane">
-        <div>
+        <div class="pane" id="actPane">
+          <p class="stack-hint" id="stackHint" hidden>Tap a waiting card to review it</p>
           <div class="actions">
             <button class="btn white" id="openSend">Send</button>
             <button class="btn" id="openReceive">Receive</button>
@@ -2486,12 +2506,30 @@
      PART B: the real app (talks to your Kiyu contract through MetaMask)
      ===================================================================== -->
   <script type="module">
-    import { createPublicClient, createWalletClient, custom, http, parseAbi, parseUnits, formatUnits, formatEther, isAddress } from "https://esm.sh/viem@2.21.0";
-    import { anvil } from "https://esm.sh/viem@2.21.0/chains";
+    import { createPublicClient, createWalletClient, custom, http, fallback, parseAbi, parseUnits, formatUnits, formatEther, isAddress } from "https://esm.sh/viem@2.21.0";
+    import { anvil, sepolia } from "https://esm.sh/viem@2.21.0/chains";
 
     // ---------- 1. Settings ----------
-    const KIYU = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";   // "Kiyu deployed at" from your deploy output
-    const USDC = "0x5FbDB2315678afecb367f032d93F642f64180aa3";   // "MockUSDC deployed at"
+    // Two networks. The site uses Sepolia, unless the address ends with ?local (then your Anvil).
+    const NETWORKS = {
+      sepolia: {
+        chain: sepolia,
+        rpc: "https://ethereum-sepolia-rpc.publicnode.com",
+        KIYU: "0x6A65B7D654268d8A24803155411ebcE8b4bBf840",      // your Kiyu on Sepolia
+        USDC: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",      // Circle's test USDC
+        poll: 4000,                                               // Sepolia makes a block every ~12s
+      },
+      local: {
+        chain: anvil,
+        rpc: "http://127.0.0.1:8545",
+        KIYU: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",      // from "kiyu start"
+        USDC: "0x5FbDB2315678afecb367f032d93F642f64180aa3",      // MockUSDC
+        poll: 1500,
+      },
+    };
+    const NET = NETWORKS[new URLSearchParams(location.search).has("local") ? "local" : "sepolia"];
+    const CHAIN = NET.chain;
+    const { KIYU, USDC } = NET;
     const DECIMALS = 6;                                           // USDC: 1 USDC = 1,000,000 units
     const RM_PER_USD = 4.08;                                      // fixed rate for now (Oct 2026). Later: fetch a live rate
 
@@ -2522,7 +2560,11 @@
     const DONE = { accept: "Accepted", reject: "Declined and returned", report: "Sender reported", refund: "Taken back", send: "Sent. Waiting for them to accept" };
 
     // ---------- 2. Connections ----------
-    const publicClient = createPublicClient({ chain: anvil, transport: http() });   // READ (free)
+    // READ (free): the public RPC first; if it fails, ask through MetaMask instead
+    const publicClient = createPublicClient({
+      chain: CHAIN,
+      transport: window.ethereum ? fallback([http(NET.rpc), custom(window.ethereum)]) : http(NET.rpc),
+    });
     let walletClient, account;                                                      // WRITE (wallet signs)
     let payments = [];
     let now = 0n;
@@ -2557,9 +2599,10 @@
     // ---------- 3. Connect ----------
     async function connect() {
       if (!window.ethereum) return toast("Install MetaMask to use Kiyu");
-      walletClient = createWalletClient({ chain: anvil, transport: custom(window.ethereum) });
+      walletClient = createWalletClient({ chain: CHAIN, transport: custom(window.ethereum) });
       try { [account] = await walletClient.requestAddresses(); } catch (e) { return toast(explain(e)); }
-      walletChain = await walletClient.getChainId().catch(() => anvil.id);
+      walletChain = await walletClient.getChainId().catch(() => CHAIN.id);
+      if (walletChain !== CHAIN.id) await switchNetwork();       // ask MetaMask to move to the right network
       $("welcome").hidden = true; $("topNav").hidden = true;
       $("home").hidden = false; $("acct").hidden = false;
       scrollTo({ top: 0 });
@@ -2572,7 +2615,15 @@
     document.querySelectorAll("[data-connect]").forEach((b) => (b.onclick = connect));
     window.ethereum?.on?.("accountsChanged", (a) => { account = a[0]; shownBalance = null; lastSnapshot = ""; knownWaiting = null; closeSheets(); if (account) refresh(); });
     window.ethereum?.on?.("chainChanged", (id) => { walletChain = Number(id); refresh(); });
-    $("switchNet").onclick = async () => { try { await walletClient.switchChain({ id: anvil.id }); refresh(); } catch (e) { toast(explain(e)); } };
+    async function switchNetwork() {
+      try {
+        try { await walletClient.switchChain({ id: CHAIN.id }); }
+        catch (e) { if (e?.code === 4902 || /unrecognized|not been added/i.test(e?.message || "")) await walletClient.addChain({ chain: CHAIN }); else throw e; }
+        walletChain = CHAIN.id; refresh();
+      } catch (e) { toast(explain(e)); }
+    }
+    $("switchNet").onclick = switchNetwork;
+    $("switchNet").textContent = `Switch to ${CHAIN.name}`;
 
     // ---------- 4. Sheets ----------
     function openSheet(id) { $("scrim").classList.add("open"); $(id).classList.add("open"); }
@@ -2666,9 +2717,21 @@
     };
 
     // ---------- 7. Read ----------
-    async function refresh() {
+    // Only one check runs at a time. If someone asks for another while one is running,
+    // we run it once more right after, instead of running two together (that caused duplicate rows).
+    let running = null, again = false;
+    function refresh() {
+      if (running) { again = true; return running; }
+      running = (async () => {
+        try { do { again = false; await withTimeout(readAll(), 15000); } while (again); }   // a stuck read can't freeze updates
+        finally { running = null; }
+      })();
+      return running;
+    }
+    async function readAll() {
       if (!account) return;
-      $("wrongNetwork").hidden = walletChain === anvil.id;     // remembered, so we don't ask MetaMask every time
+      const who = account;                                        // if the account changes mid-way, throw this read away
+      $("wrongNetwork").hidden = walletChain === CHAIN.id;     // remembered, so we don't ask MetaMask every time
 
       $("acct").textContent = short(account);
       const units = await publicClient.readContract({ address: USDC, abi: usdcAbi, functionName: "balanceOf", args: [account] });
@@ -2680,21 +2743,22 @@
       $("cardOwner").textContent = usdcText(units);
       shownBalance = bal;
 
-      now = (await publicClient.getBlock()).timestamp;
+      const blockTime = (await publicClient.getBlock()).timestamp;
       const total = await publicClient.readContract({ address: KIYU, abi, functionName: "nextId" });
-      payments = [];
-      for (let id = total - 1n; id >= 0n; id--) {
-        const [sender, recipient, amount, deadline, status] =
-          await publicClient.readContract({ address: KIYU, abi, functionName: "payments", args: [id] });
+      const read = (functionName, args) => publicClient.readContract({ address: KIYU, abi, functionName, args });
+      const ids = Array.from({ length: Number(total) }, (_, i) => total - 1n - BigInt(i));   // newest first
+      // ask for every payment at once (much faster on Sepolia than one by one)
+      const rows = await Promise.all(ids.map(async (id) => {
+        const [sender, recipient, amount, deadline, status] = await read("payments", [id]);
         const incoming = recipient.toLowerCase() === me();
-        if (!incoming && sender.toLowerCase() !== me()) continue;
+        if (!incoming && sender.toLowerCase() !== me()) return null;
         const p = { id, sender, recipient, amount, deadline, status, incoming };
-        if (incoming) {
-          p.blocked = await publicClient.readContract({ address: KIYU, abi, functionName: "blocked", args: [sender] });
-          p.reported = await publicClient.readContract({ address: KIYU, abi, functionName: "paymentReported", args: [id] });
-        }
-        payments.push(p);
-      }
+        if (incoming) [p.blocked, p.reported] = await Promise.all([read("blocked", [sender]), read("paymentReported", [id])]);
+        return p;
+      }));
+      if (who !== account) return;
+      now = blockTime;
+      payments = rows.filter(Boolean);                            // a fresh list each time, never added onto the old one
       // only redraw when a payment changed, so the page doesn't flicker on every new block
       const snapshot = JSON.stringify(payments, (k, v) => (typeof v === "bigint" ? v.toString() : v)) + (now / 3600n);   // hour, so "days left" stays fresh
       if (snapshot === lastSnapshot) return;
@@ -2713,17 +2777,17 @@
 
     // ---------- 7b. Live updates ----------
     // Watch the blockchain: every time a new block appears, check if anything changed.
-    let lastSnapshot = "", knownWaiting = null, busy = false, stopWatching = null, walletChain = anvil.id;
+    let lastSnapshot = "", knownWaiting = null, busy = false, stopWatching = null, walletChain = CHAIN.id;
     // give up on a check that takes too long, so one slow answer can't freeze live updates
     const withTimeout = (promise, ms) => Promise.race([promise, new Promise((_, no) => setTimeout(() => no(new Error("timeout")), ms))]);
     function startLive() {
       stopWatching?.();
       stopWatching = publicClient.watchBlockNumber({
-        pollingInterval: 1500,                                    // ask the chain every 1.5 seconds
+        pollingInterval: NET.poll,                                // ask the chain every few seconds
         onBlockNumber: async () => {
           if (busy || document.hidden) return;                    // skip while a transaction is running or the tab is hidden
           busy = true;
-          try { await withTimeout(refresh(), 8000); } catch (e) { /* slow or restarting chain: try again next block */ }
+          try { await refresh(); } catch (e) { /* slow or restarting chain: try again next block */ }
           busy = false;
         },
       });
@@ -2799,14 +2863,27 @@
 
     function renderFront(waiting) {
       const p = waiting.find((x) => x.id === selId);
+      $("stackHint").hidden = !waiting.length;                    // only when there's something to tap
       $("frontPane").classList.toggle("off", !p);                // fold the decision panel in / out
       $("actPane").classList.toggle("off", !!p);                 // Send/Receive fold away while deciding
       $("frontPane").inert = !p; $("actPane").inert = !!p;      // the hidden one can't be tabbed into
       $("home").classList.toggle("picking", !!p);
       $("pends").classList.toggle("picking", !!p);
-      $("stackHint").classList.toggle("off", !!p || !waiting.length);
       document.querySelectorAll(".pend").forEach((el) => el.classList.toggle("sel", !!p && el.dataset.pick === String(p.id)));
-      if (!p) return;
+      // While hidden, the panel still holds a payment (the one just closed, or the newest), so it keeps
+      // its real height and the page doesn't jump when you pick a card. Nothing waiting: empty and small.
+      const q = p ?? waiting.find((x) => x.id === lastFront) ?? waiting[0];
+      if (!q) { $("front").innerHTML = ""; $("front").hidden = true; lastFront = null; return; }
+      $("front").hidden = false;
+      // the little swap animation only plays when you switch cards while the panel is already open
+      const changed = p && lastPicked !== null && p.id !== lastPicked;
+      lastPicked = p ? p.id : null;
+      lastFront = q.id;
+      fillFront(q);
+      if (changed) { $("front").classList.remove("swap"); void $("front").offsetWidth; $("front").classList.add("swap"); }
+    }
+    let lastFront = null, lastPicked = null;
+    function fillFront(p) {
       const left = timeLeft(p), canAccept = !p.blocked && left;
       $("front").innerHTML = `
       <div class="ftop">
@@ -2818,7 +2895,6 @@
         <button class="btn sm" data-fn="reject" data-id="${p.id}">${canAccept ? "Decline" : "Send it back"}</button>
       </div>
       <div class="fmeta"><button data-unpick>Not now</button><span>${canAccept ? "Tip: drag the card onto yours to accept" : ""}</span><button data-open="${p.id}">Details</button></div>`;
-      $("front").classList.remove("swap"); void $("front").offsetWidth; $("front").classList.add("swap");
     }
 
     function dayLabel(t) {
