@@ -246,13 +246,79 @@
     .giant { display: block; margin: 100px auto 0; font-size: min(31vw, 380px); letter-spacing: -.075em; --wm-top: #fff; --wm-bottom: #3A3A3C; width: max-content; padding-right: .07em; }
 
     /* ================= Home ================= */
-    .home .card-stage { justify-items: start; margin: 8px 0 28px; }
+    /* One calm column: greeting, the card, two actions, then what's waiting and what happened */
+    .home { max-width: 520px; margin: 0 auto; }
+    .home-head { text-align: center; margin: 12px 0 40px; }
+    .hello { font-family: var(--display); font-weight: 800; font-variation-settings: "wdth" 108; font-size: clamp(40px, 6vw, 60px); letter-spacing: -.045em; line-height: 1; margin: 0 0 10px; }
+    .home-head p { margin: 0; color: var(--grey); }
+    .home .card-stage { margin-bottom: 28px; }
+    .home .card { width: 100%; max-width: 520px; }
+    .home .card-stage { animation: float 7s ease-in-out infinite; }
     .home.enter .card { animation: rise 1s var(--ease) both; }
+    .home.enter .home-head, .home.enter .actions, .home.enter .block, .home.enter .front, .home.enter .pend { animation: rowIn .8s var(--ease) both; }
+    .home.enter .actions { animation-delay: .15s; } .home.enter .block { animation-delay: .25s; }
     @keyframes rise { from { transform: translateY(60px) rotateX(18deg); opacity: 0; } }
-    .actions { position: relative; z-index: 2; display: flex; gap: 12px; margin-bottom: 56px; }   /* above the card's shadow */
-    .home-grid { display: grid; grid-template-columns: 1fr 300px; gap: 56px; align-items: start; }
-    .home h2 { font-family: var(--display); font-size: 26px; font-weight: 800; font-variation-settings: "wdth" 108; letter-spacing: -.04em; margin: 0 0 14px; }
-    .block { margin-bottom: 44px; }
+    .actions { position: relative; z-index: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 64px; }   /* above the card's shadow */
+    .block { margin-bottom: 48px; }
+    .block-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
+    .home h2 { font-family: var(--display); font-size: 26px; font-weight: 800; font-variation-settings: "wdth" 108; letter-spacing: -.04em; margin: 0; }
+    .block-head span { color: var(--grey); font-size: 15px; }
+
+    /* ---------- The wallet stack ----------
+       Each waiting payment is a dark card peeking out from behind your card.
+       --i = how far back it sits (0 = right behind your card). */
+    .stackwrap { position: relative; padding-top: var(--peek, 0px); transition: padding-top .6s var(--ease); }
+    .pends { position: absolute; inset: 0 0 auto 0; height: 100%; z-index: 1; }   /* its own layer, behind the card */
+    .pend { --i: 0; position: absolute; left: calc(14px + var(--i) * 16px); right: calc(14px + var(--i) * 16px); top: calc(var(--peek) - 52px - var(--i) * 46px);
+      height: 150px; border-radius: 22px; padding: 14px 18px; border: 0; color: #fff; text-align: left; cursor: grab; touch-action: none;
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+      background: linear-gradient(135deg, #3A3A3C, #232325); box-shadow: 0 0 0 1px rgba(255,255,255,.07) inset, 0 -12px 30px rgba(0,0,0,.55);
+      opacity: calc(1 - var(--i) * .22); transform: translateY(var(--dy, 0px)) rotate(var(--rot, 0deg));
+      transition: transform .5s var(--ease), opacity .5s var(--ease), background .3s, top .6s var(--ease), left .6s var(--ease), right .6s var(--ease); }
+    .pend:hover { --dy: -6px; }
+    .pend.sel { --dy: -14px; background: linear-gradient(135deg, #48484A, #2C2C2E); box-shadow: 0 0 0 1.5px rgba(255,255,255,.5) inset, 0 -12px 30px rgba(0,0,0,.55); }
+    .pend.sel { opacity: 1; --dy: -18px; }                   /* the one you pick lifts up and lights up */
+    .pend.dragging { transition: none; cursor: grabbing; z-index: 11 !important; }
+    .pend b { font-weight: 600; font-size: 14px; display: block; }
+    .pend small { color: var(--grey); font-size: 12px; }
+    .pend .num { font-family: var(--display); font-variation-settings: "wdth" 108; font-weight: 800; font-size: 24px; letter-spacing: -.04em; }
+    .pend.bad .num { color: #636366; }
+    .stackwrap .card-stage { position: relative; z-index: 2; }
+    /* accepted: slides down into your card. declined: flies away */
+    .pend.into { transform: translateY(170px) scale(.92); opacity: 0; transition: transform .7s cubic-bezier(.6,0,.3,1), opacity .5s .25s; }
+    .pend.away { transform: translateY(-90px) rotate(-7deg); opacity: 0; transition: transform .6s var(--ease), opacity .45s; }
+    .home .card.bump { animation: bump .6s var(--ease); }
+    @keyframes bump { 30% { transform: translateY(6px) scale(.985); } }
+
+    .stack-hint { text-align: center; color: var(--grey); font-size: 14px; margin: -4px 0 20px; }
+    /* only one set of choices at a time: Send/Receive normally, Accept/Decline while a card is picked */
+    .home.picking .actions { display: none; }
+    /* the panel for the payment you picked */
+    .front { background: var(--group); border-radius: 22px; padding: 18px; margin: 4px 0 18px; position: relative; z-index: 3; }
+    .front.swap { animation: swap .4s var(--ease); }
+    @keyframes swap { from { opacity: .3; transform: translateY(6px); } }
+    .front .ftop { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+    .front .ftop b { font-weight: 600; display: block; }
+    .front .ftop small { color: var(--grey); font-size: 14px; }
+    .front .famt { font-family: var(--display); font-variation-settings: "wdth" 108; font-weight: 800; font-size: 32px; letter-spacing: -.045em; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .front .fbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .front .fbtns.one { grid-template-columns: 1fr; }
+    .front .fmeta { display: flex; justify-content: space-between; margin-top: 12px; font-size: 13px; color: var(--grey); }
+    .front .fmeta button { font-size: 13px; border: 0; background: none; color: var(--grey); padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+    .front .fmeta button:hover { color: #fff; }
+
+    /* ---------- Activity as a ledger: big numbers, grouped by day ---------- */
+    .ledger .day { color: var(--grey); font-size: 13px; margin: 26px 0 2px; }
+    .ledger .day:first-child { margin-top: 0; }
+    .lrow { width: 100%; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 16px; padding: 16px 2px; border: 0; border-bottom: 1px solid var(--sep);
+      background: none; color: #fff; text-align: left; cursor: pointer; transition: padding .25s var(--ease); }
+    .lrow:hover { padding-left: 10px; padding-right: 10px; }
+    .lrow b { font-weight: 500; display: block; } .lrow small { color: var(--grey); font-size: 13px; }
+    .lrow .num { font-family: var(--display); font-variation-settings: "wdth" 108; font-weight: 800; font-size: 26px; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+    .lrow .num.out { color: var(--grey); }
+    .lrow .num.void { color: #48484A; text-decoration: line-through; text-decoration-thickness: 2px; }
+    .home.enter .lrow { animation: rowIn .6s var(--ease) both; }
+    .home.enter .lrow:nth-child(n+3) { animation-delay: .08s; } .home.enter .lrow:nth-child(n+5) { animation-delay: .16s; }
 
     .group { background: var(--group); border-radius: 18px; overflow: hidden; }
     .row { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; padding: 16px 20px; border: 0; background: none; text-align: left; cursor: pointer; position: relative; transition: background .12s; }
@@ -270,11 +336,6 @@
     .row .pill.dim { background: var(--fill); color: var(--grey); }
     .empty { padding: 20px; color: var(--grey); margin: 0; }
 
-    .side { background: var(--group); border-radius: 18px; padding: 24px; margin-top: 8px; position: sticky; top: 96px; }
-    .side h3 { margin: 0 0 14px; font-size: 17px; font-weight: 600; }
-    .side ul { margin: 0; padding-left: 18px; color: var(--grey); display: grid; gap: 10px; font-size: 15px; }
-    .side .stat { font-family: var(--display); font-size: 64px; font-weight: 800; font-variation-settings: "wdth" 112; letter-spacing: -.05em; line-height: 1; margin: 28px 0 4px; }
-    .side .stat-label { margin: 0; color: var(--grey); font-size: 15px; }
 
     /* ================= Sheets ================= */
     .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.6); opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 10; }
@@ -349,7 +410,6 @@
       .steps h3 { font-size: 28px; padding-top: 0; }
       .tl-ui { margin-top: 16px; transform: translateY(20px) scale(.98); }
       .clean { grid-template-columns: 1fr; gap: 24px; }
-      .home-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 520px) {
       .bar { padding: 14px 16px; }
@@ -360,9 +420,9 @@
       .card { padding: 20px 22px; border-radius: 20px; }
       .card .amount { font-size: 30px; }
       .card .wordmark { font-size: 24px; }
+      .front .famt { font-size: 26px; }
       .steps p { font-size: 17px; }
       .clean li { grid-template-columns: 1fr; gap: 6px; }
-      .actions .btn { flex: 1; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { transition: none !important; animation: none !important; }
@@ -492,8 +552,13 @@
 
   <!-- ===================== Home ===================== -->
   <section class="home" id="home" hidden>
-   <div class="home-grid">
-    <div>
+    <div class="home-head">
+      <h1 class="hello" id="hello">Hello.</h1>
+      <p id="helloSub">Your money, waiting for your yes.</p>
+    </div>
+    <!-- Waiting payments are dark cards tucked behind your card. Pick one, then accept or decline. -->
+    <div class="stackwrap" id="stackWrap">
+      <div class="pends" id="pends"></div>
       <div class="card-stage">
         <div class="card" data-tilt id="homeCard">
           <div class="top"><span class="wordmark">kiyu</span><span class="tag" id="cardTag">Protected</span></div>
@@ -503,30 +568,18 @@
           </div>
         </div>
       </div>
-      <div class="actions">
-        <button class="btn white" id="openSend">Send</button>
-        <button class="btn" id="openReceive">Receive</button>
-      </div>
-      <div class="block">
-        <h2>Waiting for you</h2>
-        <div class="group" id="waiting"></div>
-      </div>
-      <div class="block">
-        <h2>Activity</h2>
-        <div class="group" id="activity"></div>
-      </div>
     </div>
-    <aside class="side">
-      <h3>How Kiyu protects you</h3>
-      <ul>
-        <li>Money only reaches you after you accept it.</li>
-        <li>Payments from blocked senders can only be declined.</li>
-        <li>You can report any sender who paid you.</li>
-      </ul>
-      <p class="stat" id="statDeclined">0</p>
-      <p class="stat-label">payments you've declined</p>
-    </aside>
-   </div>
+    <p class="stack-hint" id="stackHint" hidden>Tap a waiting card to review it</p>
+    <div class="front" id="front" hidden></div>
+    <div class="actions">
+      <button class="btn white" id="openSend">Send</button>
+      <button class="btn" id="openReceive">Receive</button>
+    </div>
+
+    <div class="block">
+      <div class="block-head"><h2>Activity</h2></div>
+      <div class="ledger" id="activity"></div>
+    </div>
   </section>
 </main>
 
@@ -800,7 +853,11 @@
   function closeSheets() { $("scrim").classList.remove("open"); document.querySelectorAll(".sheet").forEach((s) => s.classList.remove("open")); }
   $("scrim").onclick = closeSheets;
   document.querySelectorAll("[data-close]").forEach((b) => (b.onclick = closeSheets));
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheets(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (document.querySelector(".sheet.open")) return closeSheets();
+    document.querySelector("[data-unpick]")?.click();           // Esc also puts a picked card back
+  });
 
   $("acct").onclick = () => openReceive();
   $("openReceive").onclick = () => openReceive();
@@ -816,8 +873,8 @@
       await publicClient.waitForTransactionReceipt({ hash });
       toast(DONE[fn]);
       closeSheets();
+      await celebrate(fn, args[0]);                           // card slides into yours / flies away
       await refresh();
-      if (fn === "accept") glint($("homeCard"));             // shine across the card when money arrives
       return true;
     } catch (e) {
       toast(explain(e));
@@ -915,22 +972,126 @@
         <span class="right"><span class="amt ${voided ? "void" : ""}">${p.incoming ? "+" : "−"}${eth(p.amount)} ETH</span>${pill ? "<br>" + pill : ""}</span>
       </button>`;
   }
+  // ---------- The wallet stack ----------
+  let selId = null;            // which waiting payment is picked
+  const MAX_PEEK = 4;          // how many waiting cards peek out at once
   function render() {
     const waiting = payments.filter((p) => p.incoming && p.status === 0);
     const rest = payments.filter((p) => !(p.incoming && p.status === 0));
-    $("waiting").innerHTML = waiting.length ? waiting.map(rowHTML).join("") : `<p class="empty">Nothing waiting. Payments sent to you appear here first.</p>`;
-    $("activity").innerHTML = rest.length ? rest.map(rowHTML).join("") : `<p class="empty">No activity yet.</p>`;
-    $("statDeclined").textContent = payments.filter((p) => p.incoming && p.status === 2).length;
+    if (!waiting.some((p) => p.id === selId)) selId = null;   // nothing picked until you tap a card
+
+    // dark cards behind your card: the newest sits closest
+    const shown = waiting.slice(0, MAX_PEEK);
+    $("stackWrap").style.setProperty("--peek", shown.length ? `${52 + (shown.length - 1) * 46 + 14}px` : "0px");
+    $("pends").innerHTML = shown.map((p, i) => `
+      <button class="pend ${p.blocked ? "bad" : ""} ${p.id === selId ? "sel" : ""}" style="--i:${i}; z-index:${MAX_PEEK - i}" data-pick="${p.id}" aria-label="Payment from ${short(p.sender)}">
+        <span><b>From ${short(p.sender)}</b><small>${p.blocked ? "Sender blocked" : (timeLeft(p) ?? "Expired")}</small></span>
+        <span class="num">+${eth(p.amount)}</span>
+      </button>`).join("");
+    renderFront(waiting);
+
+    // activity, grouped by the day it was sent (sent = deadline - 7 days)
+    let html = "", lastDay = "";
+    for (const p of rest) {
+      const day = dayLabel(Number(p.deadline) - 7 * 86400);
+      if (day !== lastDay) { html += `<div class="day">${day}</div>`; lastDay = day; }
+      html += ledgerHTML(p);
+    }
+    $("activity").innerHTML = html || `<p class="empty" style="padding:0">No activity yet.</p>`;
+
     $("cardTag").textContent = waiting.length ? `${waiting.length} waiting` : "Protected";
     $("cardTag").classList.toggle("live", waiting.length > 0);
+    const h = new Date().getHours();
+    $("hello").textContent = h < 12 ? "Good morning." : h < 18 ? "Good afternoon." : "Good evening.";
+    // the line under the greeting only shows when something is waiting
+    $("helloSub").textContent = waiting.length ? `${waiting.length} payment${waiting.length > 1 ? "s" : ""} waiting for your yes.` : "";
+    $("helloSub").hidden = !waiting.length;
+  }
+
+  function renderFront(waiting) {
+    const p = waiting.find((x) => x.id === selId);
+    $("front").hidden = !p;
+    $("home").classList.toggle("picking", !!p);                 // hide Send/Receive while deciding
+    $("stackHint").hidden = !!p || !waiting.length;
+    document.querySelectorAll(".pend").forEach((el) => el.classList.toggle("sel", !!p && el.dataset.pick === String(p.id)));
+    if (!p) return;
+    const left = timeLeft(p), canAccept = !p.blocked && left;
+    $("front").innerHTML = `
+      <div class="ftop">
+        <span><b>From ${short(p.sender)}</b><small>${p.blocked ? "Blocked after reports. You can only send it back." : (left ? `${left} to decide` : "The 7 days are over")}</small></span>
+        <span class="famt">+${eth(p.amount)} ETH</span>
+      </div>
+      <div class="fbtns ${canAccept ? "" : "one"}">
+        ${canAccept ? `<button class="btn white sm" data-fn="accept" data-id="${p.id}">Accept</button>` : ""}
+        <button class="btn sm" data-fn="reject" data-id="${p.id}">${canAccept ? "Decline" : "Send it back"}</button>
+      </div>
+      <div class="fmeta"><button data-unpick>Not now</button><span>${canAccept ? "Tip: drag the card onto yours to accept" : ""}</span><button data-open="${p.id}">Details</button></div>`;
+    $("front").classList.remove("swap"); void $("front").offsetWidth; $("front").classList.add("swap");
+  }
+
+  function dayLabel(t) {
+    const d = new Date(t * 1000), today = new Date(Number(now) * 1000);
+    const days = Math.floor((new Date(today.toDateString()) - new Date(d.toDateString())) / 86400000);
+    return days <= 0 ? "Today" : days === 1 ? "Yesterday" : d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  }
+  function ledgerHTML(p) {
+    const voided = p.status === 2 || p.status === 3;
+    const cls = voided ? "void" : p.incoming ? "" : "out";
+    return `
+      <button class="lrow" data-open="${p.id}">
+        <span><b>${p.incoming ? `From ${short(p.sender)}` : `To ${short(p.recipient)}`}</b><small>${subtitle(p)}</small></span>
+        <span class="num ${cls}">${p.incoming ? "+" : "−"}${eth(p.amount)}</span>
+      </button>`;
+  }
+
+  // pick a waiting card
+  document.addEventListener("click", (e) => {
+    const unpick = () => { selId = null; renderFront(payments.filter((p) => p.incoming && p.status === 0)); };
+    if (e.target.closest("[data-unpick]")) return unpick();
+    const pick = e.target.closest("[data-pick]");
+    if (!pick || pick.moved) return;
+    const id = BigInt(pick.dataset.pick);
+    selId = selId === id ? null : id;                           // tap the same card again to put it back
+    renderFront(payments.filter((p) => p.incoming && p.status === 0));
+  });
+
+  // drag a waiting card down onto your card to accept it
+  document.addEventListener("pointerdown", (e) => {
+    const el = e.target.closest(".pend");
+    if (!el || el.classList.contains("bad")) return;
+    const y0 = e.clientY; el.moved = false;
+    const move = (ev) => {
+      const dy = Math.max(-20, Math.min(160, ev.clientY - y0));
+      if (Math.abs(dy) > 6) { el.moved = true; el.classList.add("dragging"); }
+      el.style.setProperty("--dy", dy + "px");
+      el.style.setProperty("--rot", (dy / 160) * -2 + "deg");
+    };
+    const up = (ev) => {
+      removeEventListener("pointermove", move); removeEventListener("pointerup", up);
+      el.classList.remove("dragging"); el.style.removeProperty("--dy"); el.style.removeProperty("--rot");
+      if (el.moved && ev.clientY - y0 > 90) {               // dropped on the card: accept it
+        selId = BigInt(el.dataset.pick); renderFront(payments.filter((p) => p.incoming && p.status === 0));
+        document.querySelector('#front [data-fn="accept"]')?.click();
+      }
+      setTimeout(() => (el.moved = false), 0);
+    };
+    addEventListener("pointermove", move); addEventListener("pointerup", up);
+  });
+
+  // after the blockchain confirms: play the animation, then redraw
+  async function celebrate(fn, id) {
+    const el = document.querySelector(`.pend[data-pick="${id}"]`);
+    if (fn === "accept" && el) { el.classList.add("into"); await new Promise((r) => setTimeout(r, 450)); $("homeCard").classList.add("bump"); glint($("homeCard")); }
+    if (fn === "reject" && el) { el.classList.add("away"); await new Promise((r) => setTimeout(r, 450)); }
+    setTimeout(() => $("homeCard").classList.remove("bump"), 700);
   }
 
   // ---------- 9. Payment detail ----------
   document.addEventListener("click", (e) => {
-    const row = e.target.closest("[data-open]");
-    if (row) return showDetail(BigInt(row.dataset.open));
     const act = e.target.closest("button[data-fn]");
-    if (act) write(act.dataset.fn, [BigInt(act.dataset.id)], undefined, act);
+    if (act) return write(act.dataset.fn, [BigInt(act.dataset.id)], undefined, act);
+    const row = e.target.closest("[data-open]");
+    if (row) showDetail(BigInt(row.dataset.open));
   });
 
   function showDetail(id) {
