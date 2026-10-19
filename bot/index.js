@@ -6,24 +6,37 @@ import { createHash } from "node:crypto";
 import pg from "pg";
 import webpush from "web-push";
 import { createPublicClient, http as rpc, fallback, parseAbi, formatUnits, isAddress } from "viem";
-import { sepolia, anvil } from "viem/chains";
+import { sepolia, baseSepolia, anvil } from "viem/chains";
 
 // ---------- 1. Settings (from environment variables, never in code) ----------
 try { process.loadEnvFile(); } catch { /* no .env file (e.g. on Railway): fine */ }
 
+// CHAIN=local -> your Anvil, CHAIN=sepolia -> the old Ethereum Sepolia contract, nothing -> Base Sepolia
+const NETS = {
+  base: {
+    chain: baseSepolia, kiyu: "0x2aeBe753466B296065BB67fC4c767c22075C9C02", every: 2000,
+    rpcs: ["https://sepolia.base.org", "https://base-sepolia-rpc.publicnode.com", "https://base-sepolia.drpc.org"]
+  },
+  sepolia: {
+    chain: sepolia, kiyu: "0x6A65B7D654268d8A24803155411ebcE8b4bBf840", every: 12000,
+    rpcs: ["https://ethereum-sepolia-rpc.publicnode.com", "https://sepolia.drpc.org", "https://1rpc.io/sepolia"]
+  },
+  local: {
+    chain: anvil, kiyu: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512", every: 2000,
+    rpcs: ["http://127.0.0.1:8545"]
+  },
+};
 const LOCAL = process.env.CHAIN === "local";
-const NET = LOCAL
-  ? { chain: anvil,   rpc: "http://127.0.0.1:8545",                       kiyu: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512" }
-  : { chain: sepolia, rpc: "https://ethereum-sepolia-rpc.publicnode.com", kiyu: "0x6A65B7D654268d8A24803155411ebcE8b4bBf840" };
+const NET = NETS[process.env.CHAIN] ?? NETS.base;
 // Several free RPC providers: if one fails or is behind, the next one answers.
 // (Later, a free key from Alchemy or Infura is more reliable: put it first via RPC_URL.)
-const RPCS = [process.env.RPC_URL, NET.rpc, ...(LOCAL ? [] : ["https://sepolia.drpc.org", "https://1rpc.io/sepolia"])].filter(Boolean);
+const RPCS = [process.env.RPC_URL, ...NET.rpcs].filter(Boolean);
 const KIYU = process.env.KIYU_ADDRESS || NET.kiyu;
 const PORT = Number(process.env.PORT || 8080);                   // Railway sets PORT for us
 const SITE = process.env.SITE_URL || "https://kiyu-production.up.railway.app/";
 // only our own website may call the API
 const ALLOWED = (process.env.ALLOWED_ORIGINS || "https://kiyu-production.up.railway.app,http://localhost:5173").split(",").map((s) => s.trim());
-const EVERY = LOCAL ? 2000 : 12000;                              // check once per block
+const EVERY = NET.every;                                          // check about once per block (Base: every 2s)
 // Public RPCs are groups of servers; some are a block behind. Asking about the very newest block
 // can reach one that hasn't seen it yet ("invalid parameters"). Staying 1 block behind avoids that.
 const BEHIND = LOCAL ? 0n : 1n;
