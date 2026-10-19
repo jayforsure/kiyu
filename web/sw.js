@@ -1,7 +1,7 @@
 // Kiyu service worker: a small script the phone keeps for this site, even when Kiyu is closed.
 // Job 1: lets Kiyu open even with a bad connection.
 // Job 2: shows payment alerts sent by the Kiyu alerts server.
-const CACHE = "kiyu-v2";                       // change the number to throw away old saved files
+const CACHE = "kiyu-v3";                       // change the number to throw away old saved files
 
 self.addEventListener("install", () => self.skipWaiting());          // use a new version right away
 self.addEventListener("activate", (e) => e.waitUntil((async () => {
@@ -38,7 +38,7 @@ self.addEventListener("push", (e) => {
   e.waitUntil(self.registration.showNotification(a.title || "Kiyu", {
     body: a.body || "",
     icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    badge: "/icons/badge-96.png",                // small status-bar icon: Android only uses its shape
     tag: a.tag,                                   // same payment again: replace, don't stack
     data: { url: a.url || "/" },
   }));
