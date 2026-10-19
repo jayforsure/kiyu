@@ -1892,6 +1892,28 @@
       word-break: break-all;
     }
 
+    .lrow.sending {
+      opacity: .6;
+      animation: rowIn .5s var(--ease) both;
+    }
+
+    .lrow.sending small::after {
+      content: "";
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      margin-left: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: .2;
+      }
+    }
+
     /* Kiyu IDs */
     .to-who {
       margin: -12px 4px 18px;
@@ -2672,162 +2694,162 @@
      PART A: animations and the demo (plain script, works even without a wallet)
      ===================================================================== -->
   <script>
-  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const fmt = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const fmt = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  // ---------- A1. Count a number up smoothly ----------
-  // el shows `from`, animates to `to`. Used by the demo, the story and your real balance.
-  function countTo(el, from, to, ms = 900, unit = "ETH") {
-    // "RM" is written before the number, "ETH" after it
-    const show = (n) => unit === "RM" ? `<small class="pre">RM</small>${fmt(n)}` : `${fmt(n)}<small>${unit}</small>`;
-    if (still) { el.innerHTML = show(to); return; }
-    const t0 = performance.now();
-    (function tick(t) {
-      const p = Math.min((t - t0) / ms, 1), e = 1 - Math.pow(1 - p, 3);   // ease-out
-      el.innerHTML = show(from + (to - from) * e);
-      if (p < 1) requestAnimationFrame(tick);
-    })(t0);
-  }
-  function glint(card) { card.classList.remove("glint"); void card.offsetWidth; card.classList.add("glint"); }
+    // ---------- A1. Count a number up smoothly ----------
+    // el shows `from`, animates to `to`. Used by the demo, the story and your real balance.
+    function countTo(el, from, to, ms = 900, unit = "ETH") {
+      // "RM" is written before the number, "ETH" after it
+      const show = (n) => unit === "RM" ? `<small class="pre">RM</small>${fmt(n)}` : `${fmt(n)}<small>${unit}</small>`;
+      if (still) { el.innerHTML = show(to); return; }
+      const t0 = performance.now();
+      (function tick(t) {
+        const p = Math.min((t - t0) / ms, 1), e = 1 - Math.pow(1 - p, 3);   // ease-out
+        el.innerHTML = show(from + (to - from) * e);
+        if (p < 1) requestAnimationFrame(tick);
+      })(t0);
+    }
+    function glint(card) { card.classList.remove("glint"); void card.offsetWidth; card.classList.add("glint"); }
 
-  // ---------- A2. Keep a space at the end of each title line ----------
-  // Each line is its own block, so without this, copying the title gives "Money thatwaits for".
-  document.querySelectorAll("[data-split] .line-in").forEach((line) => {
-    line.textContent = line.textContent.trim() + " ";
-  });
-
-  // ---------- A3. Logo flip: the top half appears, then the bottom half flips down ----------
-  function flip(mark) {
-    mark.classList.remove("flip", "wait"); void mark.offsetWidth;   // restart the animation
-    mark.classList.add("flip");
-  }
-  window.flipLogo = () => flip(document.getElementById("barMark"));   // the app calls this after you connect
-
-  // Splash on page load, then the curtain lifts and the hero title rises
-  const splash = document.getElementById("splash");
-  function startPage() { document.querySelector(".hero").classList.add("ready"); flip(document.getElementById("barMark")); }
-  if (still) { splash.remove(); startPage(); }
-  else {
-    const mark = splash.querySelector(".wordmark");
-    document.fonts.ready.then(() => {
-      flip(mark);
-      setTimeout(() => { splash.classList.add("out"); setTimeout(startPage, 250); }, 1500);
-      setTimeout(() => splash.remove(), 2600);
+    // ---------- A2. Keep a space at the end of each title line ----------
+    // Each line is its own block, so without this, copying the title gives "Money thatwaits for".
+    document.querySelectorAll("[data-split] .line-in").forEach((line) => {
+      line.textContent = line.textContent.trim() + " ";
     });
-    splash.onclick = () => { splash.remove(); startPage(); };             // click to skip
-    setTimeout(() => { if (splash.isConnected && !splash.classList.contains("out")) { splash.classList.add("out"); startPage(); } }, 3500);   // fallback
-  }
 
-  // ---------- A4. Titles rise out of their slot when scrolled into view; the giant logo flips ----------
-  const reveal = new IntersectionObserver((entries) => entries.forEach((e) => {
-    if (!e.isIntersecting) return;
-    if (e.target.id === "giant") flip(e.target); else e.target.classList.add("ready");
-    reveal.unobserve(e.target);
-  }), { threshold: .4 });
-  document.querySelectorAll("[data-reveal], #giant").forEach((el) => reveal.observe(el));
+    // ---------- A3. Logo flip: the top half appears, then the bottom half flips down ----------
+    function flip(mark) {
+      mark.classList.remove("flip", "wait"); void mark.offsetWidth;   // restart the animation
+      mark.classList.add("flip");
+    }
+    window.flipLogo = () => flip(document.getElementById("barMark"));   // the app calls this after you connect
 
-  // ---------- A5. Card tilts and catches light under the pointer ----------
-  document.querySelectorAll("[data-tilt]").forEach((card) => {
-    if (still) return;
-    card.addEventListener("pointermove", (e) => {
-      const r = card.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
-      card.style.setProperty("--ry", `${(x - .5) * 16}deg`);
-      card.style.setProperty("--rx", `${(.5 - y) * 16}deg`);
-      card.style.setProperty("--mx", `${x * 100}%`);
-      card.style.setProperty("--my", `${y * 100}%`);
+    // Splash on page load, then the curtain lifts and the hero title rises
+    const splash = document.getElementById("splash");
+    function startPage() { document.querySelector(".hero").classList.add("ready"); flip(document.getElementById("barMark")); }
+    if (still) { splash.remove(); startPage(); }
+    else {
+      const mark = splash.querySelector(".wordmark");
+      document.fonts.ready.then(() => {
+        flip(mark);
+        setTimeout(() => { splash.classList.add("out"); setTimeout(startPage, 250); }, 1500);
+        setTimeout(() => splash.remove(), 2600);
+      });
+      splash.onclick = () => { splash.remove(); startPage(); };             // click to skip
+      setTimeout(() => { if (splash.isConnected && !splash.classList.contains("out")) { splash.classList.add("out"); startPage(); } }, 3500);   // fallback
+    }
+
+    // ---------- A4. Titles rise out of their slot when scrolled into view; the giant logo flips ----------
+    const reveal = new IntersectionObserver((entries) => entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      if (e.target.id === "giant") flip(e.target); else e.target.classList.add("ready");
+      reveal.unobserve(e.target);
+    }), { threshold: .4 });
+    document.querySelectorAll("[data-reveal], #giant").forEach((el) => reveal.observe(el));
+
+    // ---------- A5. Card tilts and catches light under the pointer ----------
+    document.querySelectorAll("[data-tilt]").forEach((card) => {
+      if (still) return;
+      card.addEventListener("pointermove", (e) => {
+        const r = card.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+        card.style.setProperty("--ry", `${(x - .5) * 16}deg`);
+        card.style.setProperty("--rx", `${(.5 - y) * 16}deg`);
+        card.style.setProperty("--mx", `${x * 100}%`);
+        card.style.setProperty("--my", `${y * 100}%`);
+      });
+      card.addEventListener("pointerleave", () => {
+        ["--rx", "--ry"].forEach((p) => card.style.setProperty(p, "0deg"));
+        card.style.setProperty("--mx", "30%"); card.style.setProperty("--my", "20%");
+      });
     });
-    card.addEventListener("pointerleave", () => {
-      ["--rx", "--ry"].forEach((p) => card.style.setProperty(p, "0deg"));
-      card.style.setProperty("--mx", "30%"); card.style.setProperty("--my", "20%");
-    });
-  });
 
 
-  // ---------- A6. The demo: fake payments you can accept or decline ----------
-  const demo = {
-    balance: 2480,
-    queue: [
-      { from: "Mei Ling", amt: 150 },
-      { from: "Daniel Tan", amt: 1200 },
-      { from: "Aiman", amt: 35.5 },
-    ],
-    i: 0,
-  };
-  const $$ = (id) => document.getElementById(id);
-  const notif = $$("notif"), accBtn = $$("demoAccept"), decBtn = $$("demoDecline"), demoTag = $$("demoTag");
+    // ---------- A6. The demo: fake payments you can accept or decline ----------
+    const demo = {
+      balance: 2480,
+      queue: [
+        { from: "Mei Ling", amt: 150 },
+        { from: "Daniel Tan", amt: 1200 },
+        { from: "Aiman", amt: 35.5 },
+      ],
+      i: 0,
+    };
+    const $$ = (id) => document.getElementById(id);
+    const notif = $$("notif"), accBtn = $$("demoAccept"), decBtn = $$("demoDecline"), demoTag = $$("demoTag");
 
-  function arrive() {
-    const p = demo.queue[demo.i++ % demo.queue.length];
-    demo.current = p;
-    notif.className = "notif";
-    $$("nFrom").innerHTML = `<b>${p.from}</b> sent you`;
-    $$("nAmt").textContent = `+RM ${fmt(p.amt)}`;
-    $$("nWhy").textContent = "Held by Kiyu until you decide";
-    requestAnimationFrame(() => requestAnimationFrame(() => notif.classList.add("in")));
-    demoTag.textContent = "1 waiting"; demoTag.classList.add("live");
-    accBtn.disabled = decBtn.disabled = false;
-  }
-  function settle(next) { accBtn.disabled = decBtn.disabled = true; setTimeout(arrive, next); }
+    function arrive() {
+      const p = demo.queue[demo.i++ % demo.queue.length];
+      demo.current = p;
+      notif.className = "notif";
+      $$("nFrom").innerHTML = `<b>${p.from}</b> sent you`;
+      $$("nAmt").textContent = `+RM ${fmt(p.amt)}`;
+      $$("nWhy").textContent = "Held by Kiyu until you decide";
+      requestAnimationFrame(() => requestAnimationFrame(() => notif.classList.add("in")));
+      demoTag.textContent = "1 waiting"; demoTag.classList.add("live");
+      accBtn.disabled = decBtn.disabled = false;
+    }
+    function settle(next) { accBtn.disabled = decBtn.disabled = true; setTimeout(arrive, next); }
 
-  accBtn.onclick = () => {
-    const p = demo.current; notif.classList.add("to-card");
-    setTimeout(() => {
-      countTo($$("demoBal"), demo.balance, demo.balance + p.amt, 900, "RM");
-      demo.balance += p.amt; glint($$("demoCard"));
-      demoTag.textContent = "Accepted"; demoTag.classList.remove("live");
-    }, 450);
-    settle(2400);
-  };
-  decBtn.onclick = () => {
-    notif.classList.add("away");
-    demoTag.textContent = "Returned to sender"; demoTag.classList.remove("live");
-    settle(2000);
-  };
-  setTimeout(arrive, still ? 0 : 1400);
+    accBtn.onclick = () => {
+      const p = demo.current; notif.classList.add("to-card");
+      setTimeout(() => {
+        countTo($$("demoBal"), demo.balance, demo.balance + p.amt, 900, "RM");
+        demo.balance += p.amt; glint($$("demoCard"));
+        demoTag.textContent = "Accepted"; demoTag.classList.remove("live");
+      }, 450);
+      settle(2400);
+    };
+    decBtn.onclick = () => {
+      notif.classList.add("away");
+      demoTag.textContent = "Returned to sender"; demoTag.classList.remove("live");
+      settle(2000);
+    };
+    setTimeout(arrive, still ? 0 : 1400);
 
-  // ---------- A7. How it works: the timeline follows your scroll ----------
-  const steps = [...document.querySelectorAll(".steps article")];
-  const stepsBox = document.querySelector(".steps"), tlDecide = $$("tlDecide");
-  function timeline() {
-    const line = innerHeight * .65;                 // a step "arrives" when its dot passes this line
-    steps.forEach((a) => {
-      const reached = a.getBoundingClientRect().top < line;
-      if (reached && !a.classList.contains("on") && a.dataset.step === "3") {   // step 3: tap Accept, then show the result
-        clearTimeout(tlDecide.t1); clearTimeout(tlDecide.t2);
-        tlDecide.t1 = setTimeout(() => tlDecide.classList.add("press"), 900);
-        tlDecide.t2 = setTimeout(() => tlDecide.classList.add("ok"), 1250);
-      }
-      if (!reached && a.dataset.step === "3") { clearTimeout(tlDecide.t1); clearTimeout(tlDecide.t2); tlDecide.classList.remove("press", "ok"); }
-      a.classList.toggle("on", reached);
-    });
-    stepsBox.style.setProperty("--fill", Math.max(0, line - stepsBox.getBoundingClientRect().top - 20) + "px");
-  }
-  addEventListener("scroll", timeline, { passive: true }); addEventListener("resize", timeline); timeline();
+    // ---------- A7. How it works: the timeline follows your scroll ----------
+    const steps = [...document.querySelectorAll(".steps article")];
+    const stepsBox = document.querySelector(".steps"), tlDecide = $$("tlDecide");
+    function timeline() {
+      const line = innerHeight * .65;                 // a step "arrives" when its dot passes this line
+      steps.forEach((a) => {
+        const reached = a.getBoundingClientRect().top < line;
+        if (reached && !a.classList.contains("on") && a.dataset.step === "3") {   // step 3: tap Accept, then show the result
+          clearTimeout(tlDecide.t1); clearTimeout(tlDecide.t2);
+          tlDecide.t1 = setTimeout(() => tlDecide.classList.add("press"), 900);
+          tlDecide.t2 = setTimeout(() => tlDecide.classList.add("ok"), 1250);
+        }
+        if (!reached && a.dataset.step === "3") { clearTimeout(tlDecide.t1); clearTimeout(tlDecide.t2); tlDecide.classList.remove("press", "ok"); }
+        a.classList.toggle("on", reached);
+      });
+      stepsBox.style.setProperty("--fill", Math.max(0, line - stepsBox.getBoundingClientRect().top - 20) + "px");
+    }
+    addEventListener("scroll", timeline, { passive: true }); addEventListener("resize", timeline); timeline();
 
-  // ---------- A7b. Sections fade in as they arrive, and out as they leave ----------
-  const secWatch = new IntersectionObserver((es) => es.forEach((e) => e.target.classList.toggle("vis", e.isIntersecting)),
-    { rootMargin: "-12% 0px -12% 0px" });
-  document.querySelectorAll("[data-sec]").forEach((el) => secWatch.observe(el));
-  // smaller items slide up once, one after another
-  const upWatch = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); upWatch.unobserve(e.target); } }), { threshold: .2 });
-  document.querySelectorAll("[data-up]").forEach((el, i) => { if (el.tagName === "LI") el.style.transitionDelay = (i % 4) * 80 + "ms"; upWatch.observe(el); });
+    // ---------- A7b. Sections fade in as they arrive, and out as they leave ----------
+    const secWatch = new IntersectionObserver((es) => es.forEach((e) => e.target.classList.toggle("vis", e.isIntersecting)),
+      { rootMargin: "-12% 0px -12% 0px" });
+    document.querySelectorAll("[data-sec]").forEach((el) => secWatch.observe(el));
+    // smaller items slide up once, one after another
+    const upWatch = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); upWatch.unobserve(e.target); } }), { threshold: .2 });
+    document.querySelectorAll("[data-up]").forEach((el, i) => { if (el.tagName === "LI") el.style.transitionDelay = (i % 4) * 80 + "ms"; upWatch.observe(el); });
 
-  // ---------- A8. Scroll effects: statement lights up, giant logo's slice opens ----------
-  const big = $$("bigLine");
-  big.innerHTML = big.textContent.split(" ").map((w) => `<span class="w">${w}</span>`).join(" ");
-  const words = big.querySelectorAll(".w");
-  const giant = $$("giant");
-  function onScroll() {
-    const vh = innerHeight;
-    const r = big.getBoundingClientRect();
-    const p = Math.min(Math.max((vh * .8 - r.top) / (r.height + vh * .35), 0), 1);   // 0 -> 1 while it crosses the screen
-    words.forEach((w, i) => (w.style.opacity = still ? 1 : .14 + .86 * Math.min(Math.max(p * words.length - i, 0), 1)));
-    const g = giant.getBoundingClientRect();
-    const q = Math.min(Math.max((vh - g.top) / g.height, 0), 1);
-    giant.style.setProperty("--gap", `${2 + q * 4}%`);   // the slice opens from 2% to 6%
-  }
-  addEventListener("scroll", onScroll, { passive: true }); onScroll();
+    // ---------- A8. Scroll effects: statement lights up, giant logo's slice opens ----------
+    const big = $$("bigLine");
+    big.innerHTML = big.textContent.split(" ").map((w) => `<span class="w">${w}</span>`).join(" ");
+    const words = big.querySelectorAll(".w");
+    const giant = $$("giant");
+    function onScroll() {
+      const vh = innerHeight;
+      const r = big.getBoundingClientRect();
+      const p = Math.min(Math.max((vh * .8 - r.top) / (r.height + vh * .35), 0), 1);   // 0 -> 1 while it crosses the screen
+      words.forEach((w, i) => (w.style.opacity = still ? 1 : .14 + .86 * Math.min(Math.max(p * words.length - i, 0), 1)));
+      const g = giant.getBoundingClientRect();
+      const q = Math.min(Math.max((vh - g.top) / g.height, 0), 1);
+      giant.style.setProperty("--gap", `${2 + q * 4}%`);   // the slice opens from 2% to 6%
+    }
+    addEventListener("scroll", onScroll, { passive: true }); onScroll();
   </script>
 
   <!-- =====================================================================
@@ -2845,7 +2867,8 @@
         rpc: "https://sepolia.base.org",
         KIYU: "0x2aeBe753466B296065BB67fC4c767c22075C9C02",      // your Kiyu on Base Sepolia
         USDC: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",      // Circle's test USDC on Base Sepolia
-        poll: 1000,
+        poll: 1500,
+        pending: true,                                            // Base shares new transactions every ~200ms, before the block is sealed
       },
       sepolia: {
         chain: sepolia,
@@ -2868,6 +2891,8 @@
     const CHAIN = NET.chain;
     const { KIYU, USDC } = NET;
     const DECIMALS = 6;                                           // USDC: 1 USDC = 1,000,000 units
+    // read the newest state: on Base that includes transactions shared before the block is sealed
+    const TAG = NET.pending ? "pending" : "latest";
 
     // Email login (thirdweb). The Client ID is public on purpose: it only says "this is the Kiyu app".
     // Paste yours from thirdweb.com > your project > Settings. Empty = MetaMask only.
@@ -3316,7 +3341,20 @@
       const label = button?.textContent;
       const main = { address: KIYU, abi, functionName: fn, args };
       const set = (t) => { if (button) { button.disabled = true; button.textContent = t; } };
+      // Google/email accounts have no popup to confirm, so show the result the moment you tap.
+      // (MetaMask must wait: you still have to approve in its popup.)
+      const instant = loginKind === "email";
+      let shown = false;
+      const show = async () => {
+        if (shown) return; shown = true;
+        busy = true;                                            // pause live updates while the animation plays
+        toast(DONE[fn]);
+        closeSheets();
+        if (fn === "send") { addSendingRow(args[0], args[1]); $("sendForm").reset(); toAddress = null; $("toWho").textContent = ""; onSendInput(); }
+        await celebrate(fn, args[0]);                           // card slides into yours / flies away
+      };
       try {
+        if (instant) await show();
         let hash;
         if (before.length && sendBatch) {
           set(WORKING[fn]);
@@ -3329,17 +3367,15 @@
           set(before.length ? `Step 2 of 2: ${WORKING[fn].toLowerCase()}` : WORKING[fn]);
           hash = await sendCall(main);
         }
-        // It's on its way: show the result right away, and confirm in the background
-        busy = true;                                            // pause live updates while the animation plays
-        toast(DONE[fn]);
-        closeSheets();
-        await celebrate(fn, args[0]);                           // card slides into yours / flies away
+        // It's on its way: show the result now (MetaMask), and confirm in the background
+        await show();
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
         if (receipt.status !== "success") { toast("That didn't go through. Nothing was moved"); await refresh(); return false; }
         await refresh();
         return true;
       } catch (e) {
-        toast(explain(e));
+        toast(shown ? `That didn't go through: ${explain(e)}` : explain(e));
+        if (shown) { lastSnapshot = ""; refresh(); }              // undo what we showed early
         return false;
       } finally {
         busy = false;
@@ -3391,7 +3427,7 @@
     }
     $("to").oninput = () => { toAddress = null; clearTimeout(toTimer); toTimer = setTimeout(async () => { await resolveTo(); onSendInput(); }, 300); onSendInput(); };
 
-    const allowanceOf = () => publicClient.readContract({ address: USDC, abi: usdcAbi, functionName: "allowance", args: [account, KIYU] });
+    const allowanceOf = () => publicClient.readContract({ address: USDC, abi: usdcAbi, functionName: "allowance", args: [account, KIYU], blockTag: TAG });
 
     async function estimateFee() {
       const to = toAddress, v = Number($("amount").value);
@@ -3442,7 +3478,7 @@
       $("wrongNetwork").hidden = walletChain === CHAIN.id;     // remembered, so we don't ask MetaMask every time
 
       $("acct").textContent = myProfile ? `@${myProfile.username}` : short(account);
-      const units = await publicClient.readContract({ address: USDC, abi: usdcAbi, functionName: "balanceOf", args: [account] });
+      const units = await publicClient.readContract({ address: USDC, abi: usdcAbi, functionName: "balanceOf", args: [account], blockTag: TAG });
       const bal = toUsd(units) * RM_PER_USD;                      // show the balance in RM
       if (bal !== shownBalance) {                                 // only animate when it changed
         countTo($("balance"), shownBalance ?? bal * .98, bal, shownBalance === null ? 1200 : 900, "RM");
@@ -3451,9 +3487,9 @@
       $("cardOwner").textContent = usdcText(units);
       shownBalance = bal;
 
-      const blockTime = (await publicClient.getBlock()).timestamp;
-      const total = await publicClient.readContract({ address: KIYU, abi, functionName: "nextId" });
-      const read = (functionName, args) => publicClient.readContract({ address: KIYU, abi, functionName, args });
+      const blockTime = (await publicClient.getBlock({ blockTag: TAG })).timestamp;
+      const total = await publicClient.readContract({ address: KIYU, abi, functionName: "nextId", blockTag: TAG });
+      const read = (functionName, args) => publicClient.readContract({ address: KIYU, abi, functionName, args, blockTag: TAG });
       const ids = Array.from({ length: Number(total) }, (_, i) => total - 1n - BigInt(i));   // newest first
       // ask for every payment at once (much faster on Sepolia than one by one)
       const rows = await Promise.all(ids.map(async (id) => {
@@ -3489,17 +3525,22 @@
     let lastSnapshot = "", knownWaiting = null, busy = false, stopWatching = null, walletChain = CHAIN.id;
     // give up on a check that takes too long, so one slow answer can't freeze live updates
     const withTimeout = (promise, ms) => Promise.race([promise, new Promise((_, no) => setTimeout(() => no(new Error("timeout")), ms))]);
+    // Every few seconds: check for changes (nothing is redrawn if nothing changed).
+    // A plain timer, because on Base changes arrive between blocks too.
     function startLive() {
       stopWatching?.();
-      stopWatching = publicClient.watchBlockNumber({
-        pollingInterval: NET.poll,                                // ask the chain every few seconds
-        onBlockNumber: async () => {
-          if (busy || document.hidden) return;                    // skip while a transaction is running or the tab is hidden
+      let stopped = false;
+      const tick = async () => {
+        if (stopped) return;
+        if (!busy && !document.hidden) {                          // skip while a transaction is running or the tab is hidden
           busy = true;
-          try { await refresh(); } catch (e) { /* slow or restarting chain: try again next block */ }
+          try { await refresh(); } catch (e) { /* slow or restarting chain: try again next time */ }
           busy = false;
-        },
-      });
+        }
+        setTimeout(tick, NET.poll);
+      };
+      tick();
+      stopWatching = () => { stopped = true; };
     }
     document.addEventListener("visibilitychange", () => { if (!document.hidden && account) refresh(); });
 
@@ -3611,6 +3652,15 @@
       const d = new Date(t * 1000), today = new Date(Number(now) * 1000);
       const days = Math.floor((new Date(today.toDateString()) - new Date(d.toDateString())) / 86400000);
       return days <= 0 ? "Today" : days === 1 ? "Yesterday" : d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+    }
+    // a payment you just sent, shown at the top of Activity until the chain confirms it
+    function addSendingRow(to, units) {
+      const row = `<div class="lrow sending"><span><b>To ${who(to)}</b><small>Sending…</small></span><span class="num out">−${rm(units)}</span></div>`;
+      const box = $("activity");
+      box.querySelector(".empty")?.remove();
+      const today = box.querySelector(".day");
+      if (today?.textContent === "Today") today.insertAdjacentHTML("afterend", row);
+      else box.insertAdjacentHTML("afterbegin", `<div class="day">Today</div>${row}`);
     }
     function ledgerHTML(p) {
       const voided = p.status === 2 || p.status === 3;
