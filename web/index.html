@@ -1310,6 +1310,102 @@
       animation: bump .6s var(--ease);
     }
 
+    /* Flip + Sparks: the card turns over while a payment confirms */
+    .flip3d {
+      position: relative;
+      width: 100%;
+      max-width: 520px;
+      transform-style: preserve-3d;
+      transition: transform .8s cubic-bezier(.3, 1.25, .4, 1);
+    }
+
+    .flip3d.turned {
+      transform: rotateY(180deg);
+    }
+
+    .flip3d>.card,
+    .card-back {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    .card-back {
+      position: absolute;
+      inset: 0;
+      transform: rotateY(180deg);
+      border-radius: 26px;
+      padding: 26px 28px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: #fff;
+      background:
+        linear-gradient(rgba(255, 255, 255, .035) 1px, transparent 1px) 0 0 / 14px 14px,
+        linear-gradient(90deg, rgba(255, 255, 255, .035) 1px, transparent 1px) 0 0 / 14px 14px,
+        radial-gradient(circle at 75% 12%, rgba(255, 255, 255, .12), rgba(255, 255, 255, 0) 55%),
+        linear-gradient(135deg, #2C2C2E 0%, #161618 45%, #232325 70%, #0E0E10 100%);
+      box-shadow: 0 40px 80px rgba(0, 0, 0, .85), 0 0 0 1px rgba(255, 255, 255, .12) inset;
+    }
+
+    .card-back .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .card-back .wordmark {
+      font-size: 30px;
+      --wm-top: #fff;
+    }
+
+    .card-back .hold {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--grey);
+    }
+
+    .card-back .big {
+      font-family: var(--display);
+      font-weight: 800;
+      font-variation-settings: "wdth" 110;
+      font-size: clamp(34px, 9vw, 48px);
+      letter-spacing: -.045em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .card-back .to {
+      font-size: 15px;
+      color: #D1D1D6;
+      margin-top: 6px;
+    }
+
+    .card-back .prog {
+      height: 3px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, .14);
+      overflow: hidden;
+    }
+
+    .card-back .prog i {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: #fff;
+      border-radius: inherit;
+      box-shadow: 0 0 10px rgba(255, 255, 255, .7);
+    }
+
+    .sparks {
+      position: absolute;
+      inset: -60px;
+      width: calc(100% + 120px);
+      height: calc(100% + 120px);
+      pointer-events: none;
+      z-index: 5;
+    }
+
     @keyframes bump {
       30% {
         transform: translateY(6px) scale(.985);
@@ -2538,16 +2634,28 @@
       <div class="stackwrap" id="stackWrap">
         <div class="pends" id="pends"></div>
         <div class="card-stage">
-          <div class="card" data-tilt id="homeCard">
-            <div class="top"><span class="wordmark">kiyu</span><span class="tag" id="cardTag">Protected</span></div>
-            <div class="bottom">
-              <div>
-                <div class="label">Balance</div>
-                <div class="amount" id="balance">0<small>ETH</small></div>
+          <!-- your card has two sides: the front, and a dark back shown while a payment confirms -->
+          <div class="flip3d" id="flip3d">
+            <div class="card" data-tilt id="homeCard">
+              <div class="top"><span class="wordmark">kiyu</span><span class="tag" id="cardTag">Protected</span></div>
+              <div class="bottom">
+                <div>
+                  <div class="label">Balance</div>
+                  <div class="amount" id="balance">0<small>ETH</small></div>
+                </div>
+                <span class="owner" id="cardOwner"></span>
               </div>
-              <span class="owner" id="cardOwner"></span>
+            </div>
+            <div class="card-back" aria-hidden="true">
+              <div class="top"><span class="wordmark">kiyu</span><span class="hold" id="backState">Holding</span></div>
+              <div>
+                <div class="big" id="backAmt"></div>
+                <div class="to" id="backWho"></div>
+              </div>
+              <div class="prog"><i id="backProg"></i></div>
             </div>
           </div>
+          <canvas class="sparks" id="sparks" aria-hidden="true"></canvas>
         </div>
       </div>
       <div class="panes">
@@ -3335,6 +3443,69 @@
     $("editId").onclick = () => { closeSheets(); setTimeout(openIdSheet, 250); };
 
     // ---------- 5. Write a transaction ----------
+    // ---------- Flip + Sparks: your card turns over while a payment confirms ----------
+    const plainName = (a) => names.get(a.toLowerCase())?.name ?? short(a);
+    const BACK = {
+      send: { state: "Holding", done: "✓ Sent", who: (a) => `for ${plainName(a[0])}`, amt: (a) => a[1] },
+      accept: { state: "Accepting", done: "✓ Accepted", who: (a, p) => `from ${plainName(p.sender)}`, amt: (a, p) => p.amount },
+      reject: { state: "Returning", done: "✓ Declined", who: (a, p) => `back to ${plainName(p.sender)}`, amt: (a, p) => p.amount },
+      refund: { state: "Taking back", done: "✓ Returned", who: (a, p) => `from ${plainName(p.recipient)}`, amt: (a, p) => p.amount },
+    };
+    const flipOK = (fn) => !still && BACK[fn];
+    function cardTurn(fn, args) {
+      if (!flipOK(fn)) return;
+      const b = BACK[fn], p = payments.find((x) => x.id === args[0]);
+      if (fn !== "send" && !p) return;
+      $("backState").textContent = b.state;
+      $("backAmt").textContent = rm(b.amt(args, p));
+      $("backWho").textContent = b.who(args, p);
+      const bar = $("backProg");
+      bar.style.transition = "none"; bar.style.width = "0"; void bar.offsetWidth;
+      bar.style.transition = "width 4s cubic-bezier(.1,.6,.3,1)"; bar.style.width = "88%";    // we don't know exactly how long: slow down near the end
+      scrollTo({ top: 0, behavior: "smooth" });
+      $("flip3d").classList.add("turned");
+    }
+    async function cardTurnBack(fn, ok) {
+      if (!$("flip3d").classList.contains("turned")) return;
+      const bar = $("backProg");
+      if (ok) { $("backState").textContent = BACK[fn].done; bar.style.transition = "width .3s ease-out"; bar.style.width = "100%"; }
+      else { $("backState").textContent = "✗ Didn't go through"; }
+      await new Promise((r) => setTimeout(r, ok ? 450 : 900));
+      $("flip3d").classList.remove("turned");
+      if (ok) { await new Promise((r) => setTimeout(r, 430)); sparks(); glint($("homeCard")); }
+    }
+    // tiny white squares (like bits of the grid) burst out of the card edges, then fall
+    function sparks() {
+      if (still) return;
+      const canvas = $("sparks"), r = canvas.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+      canvas.width = r.width * dpr; canvas.height = r.height * dpr;
+      const ctx = canvas.getContext("2d"); ctx.scale(dpr, dpr);
+      const W = r.width, H = r.height, cx = W / 2, cy = H / 2, cw = W - 120, ch = H - 120;
+      const parts = Array.from({ length: 80 }, () => {
+        let x, y;
+        if (Math.random() < .5) { x = cx - cw / 2 + Math.random() * cw; y = Math.random() < .5 ? cy - ch / 2 : cy + ch / 2; }
+        else { y = cy - ch / 2 + Math.random() * ch; x = Math.random() < .5 ? cx - cw / 2 : cx + cw / 2; }
+        const a = Math.atan2(y - cy, x - cx) + (Math.random() - .5) * .6, sp = 130 + Math.random() * 280;
+        return { x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 90, s: 3 + Math.random() * 5, rot: Math.random() * 6, vr: (Math.random() - .5) * 10, life: 0, max: .7 + Math.random() * .6, outline: Math.random() < .3 };
+      });
+      let last = performance.now();
+      const step = (now) => {
+        const dt = Math.min(.05, (now - last) / 1000); last = now;
+        ctx.clearRect(0, 0, W, H);
+        let alive = 0;
+        for (const q of parts) {
+          q.life += dt; if (q.life > q.max) continue; alive++;
+          q.vy += 420 * dt; q.vx *= .985; q.x += q.vx * dt; q.y += q.vy * dt; q.rot += q.vr * dt;
+          ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot); ctx.globalAlpha = 1 - q.life / q.max;
+          if (q.outline) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(-q.s, -q.s, q.s * 2, q.s * 2); }
+          else { ctx.fillStyle = "#fff"; ctx.fillRect(-q.s / 2, -q.s / 2, q.s, q.s); }
+          ctx.restore();
+        }
+        if (alive) requestAnimationFrame(step); else ctx.clearRect(0, 0, W, H);
+      };
+      requestAnimationFrame(step);
+    }
+
     // before = calls that must happen first (e.g. "approve"). With a smart account they all go in
     // one transaction; with MetaMask they go one after another.
     async function write(fn, args, value, button, before = []) {
@@ -3348,10 +3519,11 @@
       const show = async () => {
         if (shown) return; shown = true;
         busy = true;                                            // pause live updates while the animation plays
-        toast(DONE[fn]);
+        if (!flipOK(fn)) toast(DONE[fn]);                       // (the card itself shows it when it flips)
         closeSheets();
         if (fn === "send") { addSendingRow(args[0], args[1]); $("sendForm").reset(); toAddress = null; $("toWho").textContent = ""; onSendInput(); }
         await celebrate(fn, args[0]);                           // card slides into yours / flies away
+        cardTurn(fn, args);                                     // your card turns over: "Holding RM 10.00 for Ali"
       };
       try {
         if (instant) await show();
@@ -3370,12 +3542,15 @@
         // It's on its way: show the result now (MetaMask), and confirm in the background
         await show();
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
-        if (receipt.status !== "success") { toast("That didn't go through. Nothing was moved"); await refresh(); return false; }
-        await refresh();
+        if (receipt.status !== "success") { await cardTurnBack(fn, false); toast("That didn't go through. Nothing was moved"); await refresh(); return false; }
+        $("backState").textContent = BACK[fn]?.done ?? "";      // confirmed: show the tick while the balance updates
+        await refresh();                                        // new balance is on the front before it turns back
+        await cardTurnBack(fn, true);                           // turn back + sparks
+        if (flipOK(fn)) toast(DONE[fn]);
         return true;
       } catch (e) {
         toast(shown ? `That didn't go through: ${explain(e)}` : explain(e));
-        if (shown) { lastSnapshot = ""; refresh(); }              // undo what we showed early
+        if (shown) { await cardTurnBack(fn, false); lastSnapshot = ""; refresh(); }   // undo what we showed early
         return false;
       } finally {
         busy = false;
