@@ -1,16 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kiyu</title>
+  <!-- installable app (PWA) -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Kiyu">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Archivo = big titles (it can stretch wider and get heavier, which we animate). Geist = everything else. -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Geist:wght@400;500;600;700;800&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Geist:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     /* ================= Tokens ================= */
     :root {
@@ -25,2867 +30,1180 @@
       --ease: cubic-bezier(.2, .8, .2, 1);
       color-scheme: dark;
     }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
-    html,
-    body {
-      margin: 0;
-      color: var(--white);
-    }
-
-    body {
-      font-family: var(--font);
-      font-size: 17px;
-      line-height: 1.45;
-      letter-spacing: -.01em;
-      -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
-    }
-
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    html, body { margin: 0; color: var(--white); }
+    body { font-family: var(--font); font-size: 17px; line-height: 1.45; letter-spacing: -.01em; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
     /* Fine grid behind the whole page. It stays still while you scroll. */
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      z-index: -1;
-      pointer-events: none;
+    body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
       background-image:
-        linear-gradient(rgba(255, 255, 255, .12) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, .12) 1px, transparent 1px);
-      background-size: 28px 28px;
-      background-position: center top;
-    }
-
-    /* covers the whole screen, stays still while you scroll */
-    html {
-      background: var(--black);
-    }
-
-    body {
-      background: transparent;
-    }
-
-    button,
-    input {
-      font: inherit;
-      color: inherit;
-      letter-spacing: inherit;
-    }
-
-    a {
-      color: inherit;
-    }
-
-    :focus-visible {
-      outline: 2px solid var(--white);
-      outline-offset: 3px;
-    }
-
-    [hidden] {
-      display: none !important;
-    }
-
-    ::selection {
-      background: var(--white);
-      color: var(--black);
-    }
+        linear-gradient(rgba(255,255,255,.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.12) 1px, transparent 1px);
+      background-size: 28px 28px; background-position: center top; }   /* covers the whole screen, stays still while you scroll */
+    html { background: var(--black); }
+    body { background: transparent; }
+    button, input { font: inherit; color: inherit; letter-spacing: inherit; }
+    a { color: inherit; }
+    :focus-visible { outline: 2px solid var(--white); outline-offset: 3px; }
+    [hidden] { display: none !important; }
+    ::selection { background: var(--white); color: var(--black); }
 
     /* ================= Wordmark: "kiyu" with a slice cut through it =================
        The real text is invisible (screen readers still read it).
        ::before draws the top part, ::after draws the bottom part, leaving a gap. */
-    .wordmark {
-      --cut: 58%;
-      --gap: 5%;
-      font-family: var(--font);
-      font-weight: 800;
-      font-size: 28px;
-      letter-spacing: -.07em;
-      line-height: 1;
-      position: relative;
-      display: inline-block;
-      color: transparent !important;
-      text-decoration: none;
-    }
-
-    .wordmark::before,
-    .wordmark::after {
-      content: "kiyu" / "";
-      position: absolute;
-      left: 0;
-      top: 0;
-      color: var(--wm-top, #fff);
-    }
-
-    .wordmark::before {
-      clip-path: inset(0 0 calc(100% - var(--cut)) 0);
-    }
-
-    .wordmark::after {
-      clip-path: inset(calc(var(--cut) + max(var(--gap), var(--gap-min, 2.5px))) 0 0 0);
-      color: var(--wm-bottom, var(--wm-top, #fff));
-      transform-origin: 50% var(--cut);
-    }
-
-    /* hinge on the slice line, like a calendar flap */
+    .wordmark { --cut: 58%; --gap: 5%;
+      font-family: var(--font); font-weight: 800; font-size: 28px; letter-spacing: -.07em; line-height: 1;
+      position: relative; display: inline-block; color: transparent !important; text-decoration: none; }
+    .wordmark::before, .wordmark::after { content: "kiyu" / ""; position: absolute; left: 0; top: 0; color: var(--wm-top, #fff); }
+    .wordmark::before { clip-path: inset(0 0 calc(100% - var(--cut)) 0); }
+    .wordmark::after  { clip-path: inset(calc(var(--cut) + max(var(--gap), var(--gap-min, 2.5px))) 0 0 0); color: var(--wm-bottom, var(--wm-top, #fff));
+      transform-origin: 50% var(--cut); }   /* hinge on the slice line, like a calendar flap */
 
     /* Split-flap animation: add .flip to any wordmark.
        1. the top half slides up out of the slot
        2. the bottom half swings down from the hinge, overshoots a little, and settles */
-    .wordmark.wait::before,
-    .wordmark.wait::after {
-      opacity: 0;
-    }
-
-    .wordmark.flip::before {
-      animation: flapTop .5s var(--ease) both;
-    }
-
-    .wordmark.flip::after {
-      animation: flapDown .9s .32s cubic-bezier(.3, .7, .4, 1) both;
-    }
-
-    @keyframes flapTop {
-      from {
-        opacity: 0;
-        transform: translateY(22%);
-      }
-    }
-
+    .wordmark.wait::before, .wordmark.wait::after { opacity: 0; }
+    .wordmark.flip::before { animation: flapTop .5s var(--ease) both; }
+    .wordmark.flip::after  { animation: flapDown .9s .32s cubic-bezier(.3,.7,.4,1) both; }
+    @keyframes flapTop  { from { opacity: 0; transform: translateY(22%); } }
     @keyframes flapDown {
-      0% {
-        transform: perspective(3em) rotateX(95deg);
-        filter: brightness(.3);
-        opacity: 1;
-      }
-
-      60% {
-        transform: perspective(3em) rotateX(-16deg);
-        filter: brightness(1.15);
-      }
-
-      80% {
-        transform: perspective(3em) rotateX(7deg);
-      }
-
-      100% {
-        transform: perspective(3em) rotateX(0);
-        filter: none;
-        opacity: 1;
-      }
+      0%   { transform: perspective(3em) rotateX(95deg); filter: brightness(.3); opacity: 1; }
+      60%  { transform: perspective(3em) rotateX(-16deg); filter: brightness(1.15); }
+      80%  { transform: perspective(3em) rotateX(7deg); }
+      100% { transform: perspective(3em) rotateX(0); filter: none; opacity: 1; }
     }
 
     /* Splash: the logo flips in, then the curtain lifts */
-    .splash {
-      position: fixed;
-      inset: 0;
-      z-index: 50;
-      display: grid;
-      place-items: center;
-      background: var(--black);
-      transition: transform .9s cubic-bezier(.7, 0, .2, 1);
-    }
-
-    .splash::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background-image: linear-gradient(rgba(255, 255, 255, .12) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .12) 1px, transparent 1px);
-      background-size: 28px 28px;
-      background-position: center top;
-      -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 10%, transparent 60%);
-      mask-image: radial-gradient(circle at 50% 50%, #000 10%, transparent 60%);
-    }
-
-    .splash .wordmark {
-      font-size: min(30vw, 240px);
-      letter-spacing: -.075em;
-      padding-right: .07em;
-      --wm-bottom: #3A3A3C;
-    }
-
-    .splash.out {
-      transform: translateY(-100%);
-    }
+    .splash { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: var(--black);
+      transition: transform .9s cubic-bezier(.7,0,.2,1); }
+    .splash::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+      background-image: linear-gradient(rgba(255,255,255,.12) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.12) 1px, transparent 1px);
+      background-size: 28px 28px; background-position: center top;
+      -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 10%, transparent 60%); mask-image: radial-gradient(circle at 50% 50%, #000 10%, transparent 60%); }
+    .splash .wordmark { font-size: min(30vw, 240px); letter-spacing: -.075em; padding-right: .07em; --wm-bottom: #3A3A3C; }
+    .splash.out { transform: translateY(-100%); }
 
     /* ================= Top bar ================= */
-    .bar {
-      position: sticky;
-      top: 0;
-      z-index: 5;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      padding: 18px 32px;
-      background: rgba(0, 0, 0, .72);
-      backdrop-filter: saturate(180%) blur(20px);
-      -webkit-backdrop-filter: saturate(180%) blur(20px);
-    }
+    .bar { position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 32px; background: rgba(0,0,0,.72); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); }
+    .bar nav { display: flex; align-items: center; gap: 8px; }
+    .bar nav a { text-decoration: none; color: var(--grey); font-size: 15px; font-weight: 500; padding: 8px 12px; border-radius: 999px; transition: color .15s; }
+    .bar nav a:hover { color: var(--white); }
+    .acct { background: var(--fill); border: 0; border-radius: 999px; padding: 8px 16px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background .15s; }
+    .acct:hover { background: var(--sep); }
+    .acct.white { background: var(--white); color: var(--black); font-weight: 600; }
 
-    .bar nav {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .bar nav a {
-      text-decoration: none;
-      color: var(--grey);
-      font-size: 15px;
-      font-weight: 500;
-      padding: 8px 12px;
-      border-radius: 999px;
-      transition: color .15s;
-    }
-
-    .bar nav a:hover {
-      color: var(--white);
-    }
-
-    .acct {
-      background: var(--fill);
-      border: 0;
-      border-radius: 999px;
-      padding: 8px 16px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background .15s;
-    }
-
-    .acct:hover {
-      background: var(--sep);
-    }
-
-    .acct.white {
-      background: var(--white);
-      color: var(--black);
-      font-weight: 600;
-    }
-
-    .wrap {
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 40px 32px 120px;
-    }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 40px 32px 120px; }
 
     /* ================= Buttons ================= */
-    .btn {
-      border: 0;
-      border-radius: 999px;
-      padding: 15px 28px;
-      background: var(--fill);
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 17px;
-      transition: background .15s, transform .1s, opacity .15s;
-      white-space: nowrap;
-    }
-
-    .btn:hover {
-      background: var(--sep);
-    }
-
-    .btn:active {
-      transform: scale(.96);
-    }
-
-    .btn.white {
-      background: var(--white);
-      color: var(--black);
-    }
-
-    .btn.white:hover {
-      background: #E5E5EA;
-    }
-
-    .btn.full {
-      width: 100%;
-    }
-
-    .btn.sm {
-      padding: 11px 22px;
-      font-size: 15px;
-    }
-
-    .btn.link {
-      background: none;
-      color: var(--grey);
-      padding: 12px;
-      font-weight: 500;
-    }
-
-    .btn.link:hover {
-      color: var(--white);
-    }
-
-    .btn:disabled {
-      opacity: .35;
-      cursor: default;
-      transform: none;
-    }
+    .btn { border: 0; border-radius: 999px; padding: 15px 28px; background: var(--fill); cursor: pointer; font-weight: 600; font-size: 17px; transition: background .15s, transform .1s, opacity .15s; white-space: nowrap; }
+    .btn:hover { background: var(--sep); }
+    .btn:active { transform: scale(.96); }
+    .btn.white { background: var(--white); color: var(--black); }
+    .btn.white:hover { background: #E5E5EA; }
+    .btn.full { width: 100%; }
+    .btn.sm { padding: 11px 22px; font-size: 15px; }
+    .btn.link { background: none; color: var(--grey); padding: 12px; font-weight: 500; }
+    .btn.link:hover { color: var(--white); }
+    .btn:disabled { opacity: .35; cursor: default; transform: none; }
 
     /* ================= The card =================
        Layers, back to front: metal + brushed lines (background) -> light that follows the
        pointer (::before) -> the content -> a shine that sweeps across on .glint (::after).
        No blend modes or text shadows, so text never gets a box behind it. */
-    .card-stage {
-      perspective: 1200px;
-      display: grid;
-      place-items: center;
-    }
-
+    .card-stage { perspective: 1200px; display: grid; place-items: center; }
     .card {
-      --rx: 0deg;
-      --ry: 0deg;
-      --mx: 30%;
-      --my: 20%;
-      width: min(440px, 100%);
-      aspect-ratio: 1.586;
-      border-radius: 26px;
-      position: relative;
-      overflow: hidden;
-      isolation: isolate;
-      padding: 26px 28px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      color: #1D1D1F;
-      text-align: left;
+      --rx: 0deg; --ry: 0deg; --mx: 30%; --my: 20%;
+      width: min(440px, 100%); aspect-ratio: 1.586; border-radius: 26px; position: relative; overflow: hidden; isolation: isolate;
+      padding: 26px 28px; display: flex; flex-direction: column; justify-content: space-between;
+      color: #1D1D1F; text-align: left;
       background:
-        linear-gradient(rgba(0, 0, 0, .045) 1px, transparent 1px) 0 0 / 14px 14px,
-        /* fine grid, like the page */
-        linear-gradient(90deg, rgba(0, 0, 0, .045) 1px, transparent 1px) 0 0 / 14px 14px,
+        linear-gradient(rgba(0,0,0,.045) 1px, transparent 1px) 0 0 / 14px 14px,          /* fine grid, like the page */
+        linear-gradient(90deg, rgba(0,0,0,.045) 1px, transparent 1px) 0 0 / 14px 14px,
         linear-gradient(135deg, #FAFAF9 0%, #E4E4E2 38%, #F4F4F2 62%, #D6D6D3 100%);
-      box-shadow: 0 40px 80px rgba(0, 0, 0, .85), 0 0 0 1px rgba(255, 255, 255, .6) inset, 0 -1px 0 rgba(0, 0, 0, .1) inset;
+      box-shadow: 0 40px 80px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.6) inset, 0 -1px 0 rgba(0,0,0,.1) inset;
       transform: rotateX(var(--rx)) rotateY(var(--ry));
       transition: transform .6s var(--ease);
     }
+    .card::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+      background: radial-gradient(circle at var(--mx) var(--my), rgba(255,255,255,.85), rgba(255,255,255,0) 50%); }
+    .card::after { content: ""; position: absolute; inset: -20% -60%; pointer-events: none;
+      background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.9) 50%, transparent 60%);
+      transform: translateX(-70%); }
+    .card.glint::after { animation: glint 1.1s var(--ease); }
+    @keyframes glint { from { transform: translateX(-70%); } to { transform: translateX(70%); } }
 
-    .card::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      z-index: -1;
-      pointer-events: none;
-      background: radial-gradient(circle at var(--mx) var(--my), rgba(255, 255, 255, .85), rgba(255, 255, 255, 0) 50%);
-    }
-
-    .card::after {
-      content: "";
-      position: absolute;
-      inset: -20% -60%;
-      pointer-events: none;
-      background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, .9) 50%, transparent 60%);
-      transform: translateX(-70%);
-    }
-
-    .card.glint::after {
-      animation: glint 1.1s var(--ease);
-    }
-
-    @keyframes glint {
-      from {
-        transform: translateX(-70%);
-      }
-
-      to {
-        transform: translateX(70%);
-      }
-    }
-
-    .card .top,
-    .card .bottom {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .card .top {
-      align-items: flex-start;
-    }
-
-    .card .bottom {
-      align-items: flex-end;
-    }
-
-    .card .wordmark {
-      font-size: 30px;
-      --wm-top: #9C9C99;
-    }
-
-    .card .tag {
-      font-size: 13px;
-      font-weight: 600;
-      color: #6E6E73;
-      background: rgba(0, 0, 0, .06);
-      padding: 4px 10px;
-      border-radius: 999px;
-      transition: background .3s, color .3s;
-    }
-
-    .card .tag.live {
-      background: #1D1D1F;
-      color: #fff;
-    }
-
-    .card .label {
-      font-size: 13px;
-      font-weight: 500;
-      color: #86868B;
-      margin-bottom: 2px;
-    }
-
-    .card .amount {
-      font-size: 40px;
-      font-weight: 700;
-      letter-spacing: -.045em;
-      line-height: 1.05;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .card .amount small {
-      font-size: 20px;
-      font-weight: 600;
-      margin-left: 6px;
-      color: #86868B;
-      letter-spacing: -.02em;
-    }
-
-    .card .amount small.pre {
-      margin: 0 6px 0 0;
-    }
-
-    /* "RM" goes before the number */
-    .card .owner {
-      font-size: 14px;
-      font-weight: 500;
-      color: #86868B;
-    }
+    .card .top, .card .bottom { display: flex; justify-content: space-between; gap: 12px; }
+    .card .top { align-items: flex-start; }
+    .card .bottom { align-items: flex-end; }
+    .card .wordmark { font-size: 30px; --wm-top: #9C9C99; }
+    .card .tag { font-size: 13px; font-weight: 600; color: #6E6E73; background: rgba(0,0,0,.06); padding: 4px 10px; border-radius: 999px; transition: background .3s, color .3s; }
+    .card .tag.live { background: #1D1D1F; color: #fff; }
+    .card .label { font-size: 13px; font-weight: 500; color: #86868B; margin-bottom: 2px; }
+    .card .amount { font-size: 40px; font-weight: 700; letter-spacing: -.045em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+    .card .amount small { font-size: 20px; font-weight: 600; margin-left: 6px; color: #86868B; letter-spacing: -.02em; }
+    .card .amount small.pre { margin: 0 6px 0 0; }   /* "RM" goes before the number */
+    .card .owner { font-size: 14px; font-weight: 500; color: #86868B; }
 
     /* ================= Big titles: rise out of a slot ================= */
-    .display {
-      font-family: var(--display);
-      font-weight: 800;
-      font-variation-settings: "wdth" 100;
-      letter-spacing: -.045em;
-      line-height: .94;
-      margin: 0;
-    }
+    .display { font-family: var(--display); font-weight: 800; font-variation-settings: "wdth" 100; letter-spacing: -.045em; line-height: .94; margin: 0; }
+    .display .line { display: block; overflow: hidden; padding-bottom: .08em; margin-bottom: -.08em; }
+    .display .line-in { display: block; transform: translateY(110%); transition: transform 1s var(--ease); }
+    .ready .display .line-in, .display.ready .line-in { transform: none; }
+    .display .line:nth-child(2) .line-in { transition-delay: .09s; }
+    .display .line:nth-child(3) .line-in { transition-delay: .18s; }
 
-    .display .line {
-      display: block;
-      overflow: hidden;
-      padding-bottom: .08em;
-      margin-bottom: -.08em;
-    }
-
-    .display .line-in {
-      display: block;
-      transform: translateY(110%);
-      transition: transform 1s var(--ease);
-    }
-
-    .ready .display .line-in,
-    .display.ready .line-in {
-      transform: none;
-    }
-
-    .display .line:nth-child(2) .line-in {
-      transition-delay: .09s;
-    }
-
-    .display .line:nth-child(3) .line-in {
-      transition-delay: .18s;
-    }
-
-    .fade {
-      opacity: 0;
-      transform: translateY(14px);
-      transition: opacity .8s var(--ease), transform .8s var(--ease);
-      transition-delay: .35s;
-    }
-
-    .ready .fade {
-      opacity: 1;
-      transform: none;
-    }
+    .fade { opacity: 0; transform: translateY(14px); transition: opacity .8s var(--ease), transform .8s var(--ease); transition-delay: .35s; }
+    .ready .fade { opacity: 1; transform: none; }
 
     /* ================= Hero ================= */
-    .hero {
-      display: grid;
-      grid-template-columns: 1.3fr 1fr;
-      gap: 48px;
-      align-items: center;
-      min-height: calc(100vh - 160px);
-      padding-bottom: 40px;
-    }
-
-    .hero h1 {
-      font-size: clamp(52px, 6.6vw, 94px);
-    }
-
-    .hero .lede {
-      font-size: 21px;
-      color: var(--grey);
-      max-width: 30ch;
-      margin: 28px 0 36px;
-    }
-
-    .hero .cta {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
+    .hero { display: grid; grid-template-columns: 1.3fr 1fr; gap: 48px; align-items: center; min-height: calc(100vh - 160px); padding-bottom: 40px; }
+    .hero h1 { font-size: clamp(52px, 6.6vw, 94px); }
+    .hero .lede { font-size: 21px; color: var(--grey); max-width: 30ch; margin: 28px 0 36px; }
+    .hero .cta { display: flex; gap: 12px; flex-wrap: wrap; }
 
     /* Demo: a live card you can try */
-    .demo {
-      position: relative;
-    }
+    .demo { position: relative; }
+    .demo .stack { position: relative; padding-top: 96px; }   /* the notification sits in this space, just above the card */
+    .demo .card-stage { animation: float 7s ease-in-out infinite; }
+    @keyframes float { 50% { transform: translateY(-10px); } }
+    .notif { position: absolute; top: 0; left: 50%; width: min(380px, 92%); background: rgba(44,44,46,.82); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-radius: 20px; padding: 14px 18px; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center;
+      transform: translate(-50%, -24px) scale(.96); opacity: 0; transition: transform .6s var(--ease), opacity .4s; z-index: 2; box-shadow: 0 20px 40px rgba(0,0,0,.5); }
+    .notif.in { transform: translate(-50%, 0); opacity: 1; }
+    .notif.to-card { transform: translate(-50%, 190px) scale(.55); opacity: 0; transition: transform .7s cubic-bezier(.6,0,.3,1), opacity .5s .2s; }
+    .notif.away { transform: translate(-50%, -60px) rotate(-4deg); opacity: 0; }
+    .notif b { font-weight: 600; }
+    .notif .from { font-size: 15px; }
+    .notif .amt { font-size: 22px; font-weight: 700; letter-spacing: -.03em; grid-row: span 2; font-variant-numeric: tabular-nums; }
+    .notif .why { font-size: 13px; color: var(--grey); }
+    .notif.bad .why { color: #fff; }
+    .demo-actions { position: relative; z-index: 2; display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 28px; }
+    .demo-actions .try { color: var(--grey); font-size: 14px; margin-right: 6px; }
 
-    .demo .stack {
-      position: relative;
-      padding-top: 96px;
-    }
-
-    /* the notification sits in this space, just above the card */
-    .demo .card-stage {
-      animation: float 7s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      50% {
-        transform: translateY(-10px);
-      }
-    }
-
-    .notif {
-      position: absolute;
-      top: 0;
-      left: 50%;
-      width: min(380px, 92%);
-      background: rgba(44, 44, 46, .82);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: 20px;
-      padding: 14px 18px;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 2px 12px;
-      align-items: center;
-      transform: translate(-50%, -24px) scale(.96);
-      opacity: 0;
-      transition: transform .6s var(--ease), opacity .4s;
-      z-index: 2;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, .5);
-    }
-
-    .notif.in {
-      transform: translate(-50%, 0);
-      opacity: 1;
-    }
-
-    .notif.to-card {
-      transform: translate(-50%, 190px) scale(.55);
-      opacity: 0;
-      transition: transform .7s cubic-bezier(.6, 0, .3, 1), opacity .5s .2s;
-    }
-
-    .notif.away {
-      transform: translate(-50%, -60px) rotate(-4deg);
-      opacity: 0;
-    }
-
-    .notif b {
-      font-weight: 600;
-    }
-
-    .notif .from {
-      font-size: 15px;
-    }
-
-    .notif .amt {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -.03em;
-      grid-row: span 2;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .notif .why {
-      font-size: 13px;
-      color: var(--grey);
-    }
-
-    .notif.bad .why {
-      color: #fff;
-    }
-
-    .demo-actions {
-      position: relative;
-      z-index: 2;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 10px;
-      margin-top: 28px;
-    }
-
-    .demo-actions .try {
-      color: var(--grey);
-      font-size: 14px;
-      margin-right: 6px;
-    }
-
-    .push {
-      text-align: left;
-      background: rgba(58, 58, 60, .75);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: 20px;
-      padding: 12px 14px;
-      display: grid;
-      grid-template-columns: 34px 1fr;
-      gap: 10px;
-      align-items: start;
-    }
-
-    .push .app {
-      width: 34px;
-      height: 34px;
-      border-radius: 9px;
-      background: #fff;
-      display: grid;
-      place-items: center;
-    }
-
-    .push .app .wordmark {
-      font-size: 15px;
-      letter-spacing: -.06em;
-      --wm-top: #000;
-      --gap-min: 1px;
-    }
-
-    /* tiny icon: thinner slice so the letters stay readable */
-    .push .h {
-      display: flex;
-      justify-content: space-between;
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .push .h span {
-      color: var(--grey);
-      font-weight: 400;
-    }
-
-    .push p {
-      margin: 2px 0 0;
-      font-size: 13px;
-      line-height: 1.35;
-      color: #E5E5EA;
-    }
-
+    .push { text-align: left; background: rgba(58,58,60,.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 20px; padding: 12px 14px; display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: start; }
+    .push .app { width: 34px; height: 34px; border-radius: 9px; background: #fff; display: grid; place-items: center; }
+    .push .app .wordmark { font-size: 15px; letter-spacing: -.06em; --wm-top: #000; --gap-min: 1px; }   /* tiny icon: thinner slice so the letters stay readable */
+    .push .h { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
+    .push .h span { color: var(--grey); font-weight: 400; }
+    .push p { margin: 2px 0 0; font-size: 13px; line-height: 1.35; color: #E5E5EA; }
     /* ================= How it works: a timeline =================
        The line fills as you scroll, each dot lights up when you reach it,
        and a small piece of real Kiyu UI slides in next to each step. */
-    .story {
-      max-width: 920px;
-      margin: 80px auto 0;
-    }
-
-    .story-head h2 {
-      font-size: clamp(44px, 5.6vw, 76px);
-      margin-bottom: 72px;
-    }
-
-    .steps {
-      position: relative;
-      padding-left: 72px;
-    }
-
-    .steps::before,
-    .steps .fill {
-      content: "";
-      position: absolute;
-      left: 19px;
-      top: 20px;
-      width: 2px;
-      border-radius: 1px;
-    }
-
-    .steps::before {
-      bottom: 120px;
-      background: var(--sep);
-    }
-
-    .steps .fill {
-      height: var(--fill, 0px);
-      max-height: calc(100% - 140px);
-      background: var(--white);
-      transition: height .15s linear;
-    }
-
-    .steps article {
-      position: relative;
-      display: grid;
-      grid-template-columns: 1fr 380px;
-      gap: 48px;
-      align-items: center;
-      padding: 0 0 120px;
-      opacity: .3;
-      transition: opacity .6s var(--ease);
-    }
-
-    .steps article.on {
-      opacity: 1;
-    }
-
-    .steps .num {
-      position: absolute;
-      left: -72px;
-      top: 0;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      font-size: 15px;
-      font-weight: 800;
-      color: var(--grey);
-      background: var(--black);
-      box-shadow: inset 0 0 0 2px var(--sep);
-      transition: background .4s, color .4s, box-shadow .4s, transform .4s var(--ease);
-    }
-
-    .steps article.on .num {
-      background: var(--white);
-      color: var(--black);
-      box-shadow: none;
-      transform: scale(1.06);
-    }
-
-    .steps h3 {
-      font-family: var(--display);
-      font-weight: 800;
-      font-variation-settings: "wdth" 108;
-      font-size: 48px;
-      letter-spacing: -.045em;
-      line-height: 1;
-      margin: 0;
-      align-self: start;
-      padding-top: 2px;
-    }
-
-    .tl-ui {
-      opacity: 0;
-      transform: translateX(30px) scale(.98);
-      transition: opacity .9s var(--ease) .1s, transform .9s var(--ease) .1s;
-    }
-
-    .steps article.on .tl-ui {
-      opacity: 1;
-      transform: none;
-    }
-
-    .tl-held {
-      background: var(--group);
-      border-radius: 18px;
-      padding: 16px 18px;
-    }
-
-    .tl-held .hrow {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      font-size: 14px;
-      color: var(--grey);
-    }
-
-    .tl-held .hrow b {
-      font-family: var(--display);
-      font-variation-settings: "wdth" 108;
-      font-size: 24px;
-      font-weight: 800;
-      letter-spacing: -.03em;
-      color: #fff;
-    }
-
-    .tl-held .meter {
-      height: 4px;
-      border-radius: 2px;
-      background: var(--fill);
-      margin: 14px 0 8px;
-      overflow: hidden;
-    }
-
-    .tl-held .meter i {
-      display: block;
-      height: 100%;
-      width: 0;
-      background: #fff;
-      transition: width 1.6s var(--ease) .5s;
-    }
-
-    .steps article.on .tl-held .meter i {
-      width: 100%;
-    }
-
-    .tl-held .hrow.small {
-      font-size: 12px;
-    }
-
+    .story { max-width: 920px; margin: 80px auto 0; }
+    .story-head h2 { font-size: clamp(44px, 5.6vw, 76px); margin-bottom: 72px; }
+    .steps { position: relative; padding-left: 72px; }
+    .steps::before, .steps .fill { content: ""; position: absolute; left: 19px; top: 20px; width: 2px; border-radius: 1px; }
+    .steps::before { bottom: 120px; background: var(--sep); }
+    .steps .fill { height: var(--fill, 0px); max-height: calc(100% - 140px); background: var(--white); transition: height .15s linear; }
+    .steps article { position: relative; display: grid; grid-template-columns: 1fr 380px; gap: 48px; align-items: center; padding: 0 0 120px; opacity: .3; transition: opacity .6s var(--ease); }
+    .steps article.on { opacity: 1; }
+    .steps .num { position: absolute; left: -72px; top: 0; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+      font-size: 15px; font-weight: 800; color: var(--grey); background: var(--black); box-shadow: inset 0 0 0 2px var(--sep); transition: background .4s, color .4s, box-shadow .4s, transform .4s var(--ease); }
+    .steps article.on .num { background: var(--white); color: var(--black); box-shadow: none; transform: scale(1.06); }
+    .steps h3 { font-family: var(--display); font-weight: 800; font-variation-settings: "wdth" 108; font-size: 48px; letter-spacing: -.045em; line-height: 1; margin: 0; align-self: start; padding-top: 2px; }
+    .tl-ui { opacity: 0; transform: translateX(30px) scale(.98); transition: opacity .9s var(--ease) .1s, transform .9s var(--ease) .1s; }
+    .steps article.on .tl-ui { opacity: 1; transform: none; }
+    .tl-held { background: var(--group); border-radius: 18px; padding: 16px 18px; }
+    .tl-held .hrow { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; color: var(--grey); }
+    .tl-held .hrow b { font-family: var(--display); font-variation-settings: "wdth" 108; font-size: 24px; font-weight: 800; letter-spacing: -.03em; color: #fff; }
+    .tl-held .meter { height: 4px; border-radius: 2px; background: var(--fill); margin: 14px 0 8px; overflow: hidden; }
+    .tl-held .meter i { display: block; height: 100%; width: 0; background: #fff; transition: width 1.6s var(--ease) .5s; }
+    .steps article.on .tl-held .meter i { width: 100%; }
+    .tl-held .hrow.small { font-size: 12px; }
     /* step 3: Accept gets tapped, then turns into the result */
-    .tl-decide {
-      position: relative;
-      height: 54px;
-    }
-
-    .tl-decide .btns,
-    .tl-decide .done {
-      position: absolute;
-      inset: 0;
-      transition: opacity .45s var(--ease), transform .45s var(--ease);
-    }
-
-    .tl-decide .btns {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-
-    .tl-decide .btns div {
-      border-radius: 999px;
-      display: grid;
-      place-items: center;
-      font-weight: 600;
-      font-size: 15px;
-      background: var(--fill);
-      transition: transform .2s, background .3s;
-    }
-
-    .tl-decide .btns div:first-child {
-      background: #fff;
-      color: #000;
-    }
-
-    .tl-decide .done {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: var(--group);
-      border-radius: 999px;
-      padding: 0 18px 0 8px;
-      font-size: 15px;
-      font-weight: 600;
-      opacity: 0;
-      transform: scale(.96);
-    }
-
-    .tl-decide .done span {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      background: #fff;
-      color: #000;
-      display: grid;
-      place-items: center;
-      font-weight: 800;
-    }
-
-    .tl-decide .done em {
-      font-style: normal;
-      color: var(--grey);
-      font-weight: 400;
-      margin-left: auto;
-      font-size: 13px;
-    }
-
-    .tl-decide.press .btns div:first-child {
-      transform: scale(.95);
-      background: #D1D1D6;
-    }
-
-    .tl-decide.ok .btns {
-      opacity: 0;
-      transform: scale(.96);
-    }
-
-    .tl-decide.ok .done {
-      opacity: 1;
-      transform: none;
-    }
+    .tl-decide { position: relative; height: 54px; }
+    .tl-decide .btns, .tl-decide .done { position: absolute; inset: 0; transition: opacity .45s var(--ease), transform .45s var(--ease); }
+    .tl-decide .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .tl-decide .btns div { border-radius: 999px; display: grid; place-items: center; font-weight: 600; font-size: 15px; background: var(--fill); transition: transform .2s, background .3s; }
+    .tl-decide .btns div:first-child { background: #fff; color: #000; }
+    .tl-decide .done { display: flex; align-items: center; gap: 12px; background: var(--group); border-radius: 999px; padding: 0 18px 0 8px; font-size: 15px; font-weight: 600; opacity: 0; transform: scale(.96); }
+    .tl-decide .done span { width: 38px; height: 38px; border-radius: 50%; background: #fff; color: #000; display: grid; place-items: center; font-weight: 800; }
+    .tl-decide .done em { font-style: normal; color: var(--grey); font-weight: 400; margin-left: auto; font-size: 13px; }
+    .tl-decide.press .btns div:first-child { transform: scale(.95); background: #D1D1D6; }
+    .tl-decide.ok .btns { opacity: 0; transform: scale(.96); }
+    .tl-decide.ok .done { opacity: 1; transform: none; }
 
     /* ================= Sections fade in as they arrive and out as they leave ================= */
-    [data-sec] {
-      opacity: 0;
-      transform: translateY(48px) scale(.985);
-      transition: opacity 1s var(--ease), transform 1s var(--ease);
-    }
-
-    [data-sec].vis {
-      opacity: 1;
-      transform: none;
-    }
-
+    [data-sec] { opacity: 0; transform: translateY(48px) scale(.985); transition: opacity 1s var(--ease), transform 1s var(--ease); }
+    [data-sec].vis { opacity: 1; transform: none; }
     /* Smaller items inside a section can also slide up one after another */
-    [data-up] {
-      opacity: 0;
-      transform: translateY(28px);
-      transition: opacity .8s var(--ease), transform .8s var(--ease);
-    }
-
-    [data-up].in {
-      opacity: 1;
-      transform: none;
-    }
+    [data-up] { opacity: 0; transform: translateY(28px); transition: opacity .8s var(--ease), transform .8s var(--ease); }
+    [data-up].in { opacity: 1; transform: none; }
 
     /* ================= Statement: words light up as you scroll ================= */
-    .statement {
-      padding: 120px 0 140px;
-    }
-
-    .statement p.big {
-      font-family: var(--display);
-      font-weight: 800;
-      font-variation-settings: "wdth" 112;
-      font-size: clamp(48px, 8.4vw, 124px);
-      letter-spacing: -.05em;
-      line-height: .95;
-      margin: 0;
-    }
-
-    .statement .w {
-      opacity: .14;
-      transition: opacity .25s linear;
-    }
-
-    .statement .note {
-      color: var(--grey);
-      font-size: 19px;
-      margin: 36px 0 0;
-      max-width: 40ch;
-    }
+    .statement { padding: 120px 0 140px; }
+    .statement p.big { font-family: var(--display); font-weight: 800; font-variation-settings: "wdth" 112; font-size: clamp(48px, 8.4vw, 124px); letter-spacing: -.05em; line-height: .95; margin: 0; }
+    .statement .w { opacity: .14; transition: opacity .25s linear; }
+    .statement .note { color: var(--grey); font-size: 19px; margin: 36px 0 0; max-width: 40ch; }
 
     /* ================= What keeps it clean ================= */
-    .clean {
-      display: grid;
-      grid-template-columns: 1fr 1.4fr;
-      gap: 64px;
-      padding: 40px 0 120px;
-    }
-
-    .clean h2 {
-      font-family: var(--display);
-      font-weight: 800;
-      font-variation-settings: "wdth" 108;
-      font-size: 48px;
-      letter-spacing: -.045em;
-      line-height: 1;
-      margin: 0;
-    }
-
-    .clean ul {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-    }
-
-    .clean li {
-      display: grid;
-      grid-template-columns: 180px 1fr;
-      gap: 24px;
-      padding: 28px 0;
-      border-top: 1px solid var(--sep);
-    }
-
-    .clean li:last-child {
-      border-bottom: 1px solid var(--sep);
-    }
-
-    .clean b {
-      font-size: 19px;
-      font-weight: 600;
-    }
-
-    .clean p {
-      margin: 0;
-      color: var(--grey);
-    }
+    .clean { display: grid; grid-template-columns: 1fr 1.4fr; gap: 64px; padding: 40px 0 120px; }
+    .clean h2 { font-family: var(--display); font-weight: 800; font-variation-settings: "wdth" 108; font-size: 48px; letter-spacing: -.045em; line-height: 1; margin: 0; }
+    .clean ul { list-style: none; margin: 0; padding: 0; }
+    .clean li { display: grid; grid-template-columns: 180px 1fr; gap: 24px; padding: 28px 0; border-top: 1px solid var(--sep); }
+    .clean li:last-child { border-bottom: 1px solid var(--sep); }
+    .clean b { font-size: 19px; font-weight: 600; }
+    .clean p { margin: 0; color: var(--grey); }
 
     /* ================= Ending + giant wordmark ================= */
-    .ending {
-      text-align: center;
-      padding: 40px 0 0;
-    }
-
-    .ending h2 {
-      font-size: clamp(44px, 6vw, 84px);
-      margin-bottom: 32px;
-    }
-
-    .giant {
-      display: block;
-      margin: 100px auto 0;
-      font-size: min(31vw, 380px);
-      letter-spacing: -.075em;
-      --wm-top: #fff;
-      --wm-bottom: #3A3A3C;
-      width: max-content;
-      padding-right: .07em;
-    }
+    .ending { text-align: center; padding: 40px 0 0; }
+    .ending h2 { font-size: clamp(44px, 6vw, 84px); margin-bottom: 32px; }
+    .giant { display: block; margin: 100px auto 0; font-size: min(31vw, 380px); letter-spacing: -.075em; --wm-top: #fff; --wm-bottom: #3A3A3C; width: max-content; padding-right: .07em; }
 
     /* ================= Home ================= */
     /* One calm column: greeting, the card, two actions, then what's waiting and what happened */
-    .home {
-      max-width: 520px;
-      margin: 0 auto;
-    }
-
-    .home-head {
-      text-align: center;
-      margin: 12px 0 40px;
-    }
-
-    .hello {
-      font-family: var(--display);
-      font-weight: 800;
-      font-variation-settings: "wdth" 108;
-      font-size: clamp(40px, 6vw, 60px);
-      letter-spacing: -.045em;
-      line-height: 1;
-      margin: 0 0 10px;
-    }
-
-    .home-head p {
-      margin: 0;
-      color: var(--grey);
-    }
-
-    .home .card-stage {
-      margin-bottom: 28px;
-    }
-
-    .home .card {
-      width: 100%;
-      max-width: 520px;
-    }
-
-    .home .card-stage {
-      animation: float 7s ease-in-out infinite;
-    }
-
-    .home.enter .card {
-      animation: rise 1s var(--ease) both;
-    }
-
-    .home.enter .home-head,
-    .home.enter .actions,
-    .home.enter .block,
-    .home.enter .pend {
-      animation: rowIn .8s var(--ease) both;
-    }
-
-    .home.enter .actions {
-      animation-delay: .15s;
-    }
-
-    .home.enter .block {
-      animation-delay: .25s;
-    }
-
-    @keyframes rise {
-      from {
-        transform: translateY(60px) rotateX(18deg);
-        opacity: 0;
-      }
-    }
-
-    .actions {
-      position: relative;
-      z-index: 2;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    /* above the card's shadow */
-    .block {
-      margin-bottom: 48px;
-    }
-
-    .block-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 14px;
-    }
-
-    .home h2 {
-      font-family: var(--display);
-      font-size: 26px;
-      font-weight: 800;
-      font-variation-settings: "wdth" 108;
-      letter-spacing: -.04em;
-      margin: 0;
-    }
-
-    .block-head span {
-      color: var(--grey);
-      font-size: 15px;
-    }
+    .home { max-width: 520px; margin: 0 auto; }
+    .home-head { text-align: center; margin: 12px 0 40px; }
+    .hello { font-family: var(--display); font-weight: 800; font-variation-settings: "wdth" 108; font-size: clamp(40px, 6vw, 60px); letter-spacing: -.045em; line-height: 1; margin: 0 0 10px; }
+    .home-head p { margin: 0; color: var(--grey); }
+    .home .card-stage { margin-bottom: 28px; }
+    .home .card { width: 100%; max-width: 520px; }
+    .home .card-stage { animation: float 7s ease-in-out infinite; }
+    .home.enter .card { animation: rise 1s var(--ease) both; }
+    .home.enter .home-head, .home.enter .actions, .home.enter .block, .home.enter .pend { animation: rowIn .8s var(--ease) both; }
+    .home.enter .actions { animation-delay: .15s; } .home.enter .block { animation-delay: .25s; }
+    @keyframes rise { from { transform: translateY(60px) rotateX(18deg); opacity: 0; } }
+    .actions { position: relative; z-index: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }   /* above the card's shadow */
+    .block { margin-bottom: 48px; }
+    .block-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
+    .home h2 { font-family: var(--display); font-size: 26px; font-weight: 800; font-variation-settings: "wdth" 108; letter-spacing: -.04em; margin: 0; }
+    .block-head span { color: var(--grey); font-size: 15px; }
 
     /* ---------- The wallet stack ----------
        Each waiting payment is a dark card peeking out from behind your card.
        --i = how far back it sits (0 = right behind your card). */
-    .stackwrap {
-      position: relative;
-      padding-top: var(--peek, 0px);
-      margin-top: 20px;
-      transition: padding-top .6s var(--ease);
-    }
-
-    /* room for a card to lift */
-    .pends {
-      position: absolute;
-      inset: 0 0 auto 0;
-      height: 100%;
-      z-index: 1;
-    }
-
-    /* its own layer, behind the card */
-    .pend {
-      --i: 0;
-      position: absolute;
-      left: calc(14px + var(--i) * 16px);
-      right: calc(14px + var(--i) * 16px);
-      top: calc(var(--peek) - 52px - var(--i) * 46px);
-      height: 150px;
-      border-radius: 22px;
-      padding: 14px 18px;
-      border: 0;
-      color: #fff;
-      text-align: left;
-      cursor: grab;
-      touch-action: none;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      background: linear-gradient(135deg, #3A3A3C, #232325);
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, .07) inset, 0 -12px 30px rgba(0, 0, 0, .55);
-      opacity: calc(1 - var(--i) * .22);
-      transform: translateY(var(--dy, 0px)) rotate(var(--rot, 0deg)) scale(var(--sc, 1));
-      transition: transform .7s cubic-bezier(.3, 1.6, .4, 1), opacity .4s var(--ease), box-shadow .4s var(--ease),
-        top .6s var(--ease), left .6s var(--ease), right .6s var(--ease);
-      /* springy: overshoots a little, then settles */
-      will-change: transform;
-      backface-visibility: hidden;
-    }
-
-    /* keep the card on its own layer all the time, so its text doesn't snap when the lift ends */
-    .pend::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      pointer-events: none;
-      /* lighter layer that fades in when picked */
-      background: linear-gradient(135deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .02));
-      opacity: 0;
-      transition: opacity .4s var(--ease);
-    }
-
-    .pend>* {
-      position: relative;
-      z-index: 1;
-    }
-
-    .pend:hover {
-      --dy: -4px;
-    }
-
-    .pends.picking .pend:not(.sel) {
-      opacity: .55;
-    }
-
-    /* the others dim a little */
-    .pend.sel {
-      opacity: 1;
-      --dy: -10px;
-      box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .5) inset, 0 -16px 36px rgba(0, 0, 0, .6);
-    }
-
-    .pend.sel::after {
-      opacity: 1;
-    }
-
-    .pend.new {
-      animation: dropIn .8s cubic-bezier(.2, 1.2, .3, 1) both;
-    }
-
-    /* a payment that just arrived drops in */
-    @keyframes dropIn {
-      from {
-        transform: translateY(-70px) rotate(-3deg);
-        opacity: 0;
-      }
-    }
-
-    /* the one you pick lifts up and lights up */
-    .pend.dragging {
-      transition: none;
-      cursor: grabbing;
-      z-index: 11 !important;
-    }
-
-    .pend b {
-      font-weight: 600;
-      font-size: 14px;
-      display: block;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .pend>span:first-child {
-      min-width: 0;
-    }
-
-    .pend .num {
-      white-space: nowrap;
-    }
-
+    .stackwrap { position: relative; padding-top: var(--peek, 0px); margin-top: 20px; transition: padding-top .6s var(--ease); }   /* room for a card to lift */
+    .pends { position: absolute; inset: 0 0 auto 0; height: 100%; z-index: 1; }   /* its own layer, behind the card */
+    .pend { --i: 0; position: absolute; left: calc(14px + var(--i) * 16px); right: calc(14px + var(--i) * 16px); top: calc(var(--peek) - 52px - var(--i) * 46px);
+      height: 150px; border-radius: 22px; padding: 14px 18px; border: 0; color: #fff; text-align: left; cursor: grab; touch-action: none;
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+      background: linear-gradient(135deg, #3A3A3C, #232325); box-shadow: 0 0 0 1px rgba(255,255,255,.07) inset, 0 -12px 30px rgba(0,0,0,.55);
+      opacity: calc(1 - var(--i) * .22); transform: translateY(var(--dy, 0px)) rotate(var(--rot, 0deg)) scale(var(--sc, 1));
+      transition: transform .7s cubic-bezier(.3,1.6,.4,1), opacity .4s var(--ease), box-shadow .4s var(--ease),
+                  top .6s var(--ease), left .6s var(--ease), right .6s var(--ease);   /* springy: overshoots a little, then settles */
+      will-change: transform; backface-visibility: hidden; }   /* keep the card on its own layer all the time, so its text doesn't snap when the lift ends */
+    .pend::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;   /* lighter layer that fades in when picked */
+      background: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.02)); opacity: 0; transition: opacity .4s var(--ease); }
+    .pend > * { position: relative; z-index: 1; }
+    .pend:hover { --dy: -4px; }
+    .pends.picking .pend:not(.sel) { opacity: .55; }                /* the others dim a little */
+    .pend.sel { opacity: 1; --dy: -10px; box-shadow: 0 0 0 1.5px rgba(255,255,255,.5) inset, 0 -16px 36px rgba(0,0,0,.6); }
+    .pend.sel::after { opacity: 1; }
+    .pend.new { animation: dropIn .8s cubic-bezier(.2,1.2,.3,1) both; }   /* a payment that just arrived drops in */
+    @keyframes dropIn { from { transform: translateY(-70px) rotate(-3deg); opacity: 0; } }                   /* the one you pick lifts up and lights up */
+    .pend.dragging { transition: none; cursor: grabbing; z-index: 11 !important; }
+    .pend b { font-weight: 600; font-size: 14px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pend > span:first-child { min-width: 0; }
+    .pend .num { white-space: nowrap; }
     @media (max-width: 430px) {
-      .pends .pend .num {
-        font-size: 20px;
-      }
-
-      .front .fmeta span {
-        display: none;
-      }
-
-      /* the drag tip doesn't fit on small phones */
+      .pends .pend .num { font-size: 20px; }
+      .front .fmeta span { display: none; }   /* the drag tip doesn't fit on small phones */
     }
-
-    .pend small {
-      color: var(--grey);
-      font-size: 12px;
-    }
-
-    .pend .num {
-      font-family: var(--display);
-      font-variation-settings: "wdth" 108;
-      font-weight: 800;
-      font-size: 24px;
-      letter-spacing: -.04em;
-    }
-
-    .pend.bad .num {
-      color: #636366;
-    }
-
-    .stackwrap .card-stage {
-      position: relative;
-      z-index: 2;
-    }
-
+    .pend small { color: var(--grey); font-size: 12px; }
+    .pend .num { font-family: var(--display); font-variation-settings: "wdth" 108; font-weight: 800; font-size: 24px; letter-spacing: -.04em; }
+    .pend.bad .num { color: #636366; }
+    .stackwrap .card-stage { position: relative; z-index: 2; }
     /* accepted: slides down into your card. declined: flies away */
-    .pend.into {
-      transform: translateY(170px) scale(.92);
-      opacity: 0;
-      transition: transform .7s cubic-bezier(.6, 0, .3, 1), opacity .5s .25s;
-    }
-
-    .pend.away {
-      transform: translateY(-90px) rotate(-7deg);
-      opacity: 0;
-      transition: transform .6s var(--ease), opacity .45s;
-    }
-
-    .home .card.bump {
-      animation: bump .6s var(--ease);
-    }
-
-    @keyframes bump {
-      30% {
-        transform: translateY(6px) scale(.985);
-      }
-    }
+    .pend.into { transform: translateY(170px) scale(.92); opacity: 0; transition: transform .7s cubic-bezier(.6,0,.3,1), opacity .5s .25s; }
+    .pend.away { transform: translateY(-90px) rotate(-7deg); opacity: 0; transition: transform .6s var(--ease), opacity .45s; }
+    .home .card.bump { animation: bump .6s var(--ease); }
+    @keyframes bump { 30% { transform: translateY(6px) scale(.985); } }
 
     /* only one set of choices at a time: Send/Receive normally, Accept/Decline while a card is picked */
     /* Two "panes" stacked in the same spot. The area is always as tall as the bigger one,
        so swapping them only cross-fades and Activity below never moves. */
-    .panes {
-      display: grid;
-      margin: 4px 0 56px;
-      position: relative;
-      z-index: 3;
-    }
-
-    /* always above the card's shadow, also while animating */
+    .panes { display: grid; margin: 4px 0 56px; position: relative; z-index: 3; }   /* always above the card's shadow, also while animating */
     /* sits above Send/Receive, inside the same fixed-height area, so it costs no extra room */
-    .stack-hint {
-      text-align: center;
-      color: var(--grey);
-      font-size: 14px;
-      margin: 0 0 20px;
-    }
-
-    .pane {
-      grid-area: 1 / 1;
-      align-self: start;
-      opacity: 1;
-      transform: none;
-      visibility: visible;
-      will-change: transform, opacity;
-      transition: opacity .35s var(--ease), transform .45s var(--ease), visibility 0s;
-    }
-
-    .pane.off {
-      opacity: 0;
-      transform: translateY(8px);
-      visibility: hidden;
-      pointer-events: none;
-      transition: opacity .25s var(--ease), transform .45s var(--ease), visibility 0s .25s;
-    }
-
+    .stack-hint { text-align: center; color: var(--grey); font-size: 14px; margin: 0 0 20px; }
+    .pane { grid-area: 1 / 1; align-self: start; opacity: 1; transform: none; visibility: visible; will-change: transform, opacity;
+      transition: opacity .35s var(--ease), transform .45s var(--ease), visibility 0s; }
+    .pane.off { opacity: 0; transform: translateY(8px); visibility: hidden; pointer-events: none;
+      transition: opacity .25s var(--ease), transform .45s var(--ease), visibility 0s .25s; }
     /* the panel for the payment you picked */
-    .front {
-      background: var(--group);
-      border-radius: 22px;
-      padding: 18px;
-      position: relative;
-      z-index: 3;
-    }
-
-    .front.swap {
-      animation: swap .4s var(--ease);
-    }
-
-    @keyframes swap {
-      from {
-        opacity: .6;
-        transform: translateY(4px);
-      }
-    }
-
-    .front .ftop {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
-    .front .ftop b {
-      font-weight: 600;
-      display: block;
-    }
-
-    .front .ftop small {
-      color: var(--grey);
-      font-size: 14px;
-    }
-
-    .front .famt {
-      font-family: var(--display);
-      font-variation-settings: "wdth" 108;
-      font-weight: 800;
-      font-size: 32px;
-      letter-spacing: -.045em;
-      line-height: 1;
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-    }
-
-    .front .fbtns {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-
-    .front .fbtns.one {
-      grid-template-columns: 1fr;
-    }
-
-    .front .fmeta {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 12px;
-      font-size: 13px;
-      color: var(--grey);
-    }
-
-    .front .fmeta button {
-      font-size: 13px;
-      border: 0;
-      background: none;
-      color: var(--grey);
-      padding: 0;
-      cursor: pointer;
-      text-decoration: underline;
-      text-underline-offset: 3px;
-    }
-
-    .front .fmeta button:hover {
-      color: #fff;
-    }
+    .front { background: var(--group); border-radius: 22px; padding: 18px; position: relative; z-index: 3; }
+    .front.swap { animation: swap .4s var(--ease); }
+    @keyframes swap { from { opacity: .6; transform: translateY(4px); } }
+    .front .ftop { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+    .front .ftop b { font-weight: 600; display: block; }
+    .front .ftop small { color: var(--grey); font-size: 14px; }
+    .front .famt { font-family: var(--display); font-variation-settings: "wdth" 108; font-weight: 800; font-size: 32px; letter-spacing: -.045em; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .front .fbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .front .fbtns.one { grid-template-columns: 1fr; }
+    .front .fmeta { display: flex; justify-content: space-between; margin-top: 12px; font-size: 13px; color: var(--grey); }
+    .front .fmeta button { font-size: 13px; border: 0; background: none; color: var(--grey); padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+    .front .fmeta button:hover { color: #fff; }
 
     /* ---------- Activity as a ledger: big numbers, grouped by day ---------- */
-    .ledger .day {
-      color: var(--grey);
-      font-size: 13px;
-      margin: 26px 0 2px;
-    }
+    .ledger .day { color: var(--grey); font-size: 13px; margin: 26px 0 2px; }
+    .ledger .day:first-child { margin-top: 0; }
+    .lrow { width: 100%; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 16px; padding: 16px 2px; border: 0; border-bottom: 1px solid var(--sep);
+      background: none; color: #fff; text-align: left; cursor: pointer; transition: padding .25s var(--ease); }
+    .lrow:hover { padding-left: 10px; padding-right: 10px; }
+    .lrow b { font-weight: 500; display: block; } .lrow small { color: var(--grey); font-size: 13px; }
+    .lrow .num { font-family: var(--display); font-variation-settings: "wdth" 108; font-weight: 800; font-size: 26px; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+    .lrow .num.out { color: var(--grey); }
+    .lrow .num.void { color: #48484A; text-decoration: line-through; text-decoration-thickness: 2px; }
+    .home.enter .lrow { animation: rowIn .6s var(--ease) both; }
+    .home.enter .lrow:nth-child(n+3) { animation-delay: .08s; } .home.enter .lrow:nth-child(n+5) { animation-delay: .16s; }
 
-    .ledger .day:first-child {
-      margin-top: 0;
-    }
-
-    .lrow {
-      width: 100%;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      align-items: center;
-      gap: 16px;
-      padding: 16px 2px;
-      border: 0;
-      border-bottom: 1px solid var(--sep);
-      background: none;
-      color: #fff;
-      text-align: left;
-      cursor: pointer;
-      transition: padding .25s var(--ease);
-    }
-
-    .lrow:hover {
-      padding-left: 10px;
-      padding-right: 10px;
-    }
-
-    .lrow b {
-      font-weight: 500;
-      display: block;
-    }
-
-    .lrow small {
-      color: var(--grey);
-      font-size: 13px;
-    }
-
-    .lrow .num {
-      font-family: var(--display);
-      font-variation-settings: "wdth" 108;
-      font-weight: 800;
-      font-size: 26px;
-      letter-spacing: -.04em;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .lrow .num.out {
-      color: var(--grey);
-    }
-
-    .lrow .num.void {
-      color: #48484A;
-      text-decoration: line-through;
-      text-decoration-thickness: 2px;
-    }
-
-    .home.enter .lrow {
-      animation: rowIn .6s var(--ease) both;
-    }
-
-    .home.enter .lrow:nth-child(n+3) {
-      animation-delay: .08s;
-    }
-
-    .home.enter .lrow:nth-child(n+5) {
-      animation-delay: .16s;
-    }
-
-    .group {
-      background: var(--group);
-      border-radius: 18px;
-      overflow: hidden;
-    }
-
-    .row {
-      width: 100%;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 16px;
-      align-items: center;
-      padding: 16px 20px;
-      border: 0;
-      background: none;
-      text-align: left;
-      cursor: pointer;
-      position: relative;
-      transition: background .12s;
-    }
-
-    .row:hover {
-      background: var(--fill);
-    }
-
-    .row+.row::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 20px;
-      right: 0;
-      height: 1px;
-      background: var(--sep);
-    }
-
-    .enter .row {
-      animation: rowIn .6s var(--ease) both;
-    }
-
-    .enter .row:nth-child(2) {
-      animation-delay: .05s;
-    }
-
-    .enter .row:nth-child(3) {
-      animation-delay: .1s;
-    }
-
-    .enter .row:nth-child(n+4) {
-      animation-delay: .15s;
-    }
-
-    @keyframes rowIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-    }
-
-    .row .title {
-      font-weight: 500;
-    }
-
-    .row .sub {
-      font-size: 14px;
-      color: var(--grey);
-    }
-
-    .row .right {
-      text-align: right;
-    }
-
-    .row .amt {
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .row .amt.void {
-      text-decoration: line-through;
-      color: var(--grey);
-      font-weight: 400;
-    }
-
-    .row .pill {
-      display: inline-block;
-      margin-top: 4px;
-      font-size: 12px;
-      font-weight: 600;
-      padding: 2px 9px;
-      border-radius: 999px;
-      background: var(--white);
-      color: var(--black);
-    }
-
-    .row .pill.dim {
-      background: var(--fill);
-      color: var(--grey);
-    }
-
-    .empty {
-      padding: 20px;
-      color: var(--grey);
-      margin: 0;
-    }
+    .group { background: var(--group); border-radius: 18px; overflow: hidden; }
+    .row { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; padding: 16px 20px; border: 0; background: none; text-align: left; cursor: pointer; position: relative; transition: background .12s; }
+    .row:hover { background: var(--fill); }
+    .row + .row::before { content: ""; position: absolute; top: 0; left: 20px; right: 0; height: 1px; background: var(--sep); }
+    .enter .row { animation: rowIn .6s var(--ease) both; }
+    .enter .row:nth-child(2) { animation-delay: .05s; } .enter .row:nth-child(3) { animation-delay: .1s; } .enter .row:nth-child(n+4) { animation-delay: .15s; }
+    @keyframes rowIn { from { opacity: 0; transform: translateY(10px); } }
+    .row .title { font-weight: 500; }
+    .row .sub { font-size: 14px; color: var(--grey); }
+    .row .right { text-align: right; }
+    .row .amt { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .row .amt.void { text-decoration: line-through; color: var(--grey); font-weight: 400; }
+    .row .pill { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--white); color: var(--black); }
+    .row .pill.dim { background: var(--fill); color: var(--grey); }
+    .empty { padding: 20px; color: var(--grey); margin: 0; }
 
 
     /* ================= Sheets ================= */
-    .scrim {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, .6);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .25s;
-      z-index: 10;
-    }
+    .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.6); opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 10; }
+    .scrim.open { opacity: 1; pointer-events: auto; }
+    .sheet { position: fixed; z-index: 11; left: 50%; bottom: 0; width: min(520px, 100%); max-height: 92vh; overflow-y: auto; background: var(--group); border-radius: 28px 28px 0 0; padding: 10px 24px 32px; transform: translate(-50%, 100%); visibility: hidden; transition: transform .45s var(--ease), visibility .45s; }
+    .sheet.open { transform: translate(-50%, 0); visibility: visible; }
+    .grabber { width: 40px; height: 5px; border-radius: 3px; background: var(--sep); margin: 0 auto 14px; }
+    .sheet-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .sheet-top b { font-size: 17px; font-weight: 600; }
+    .close { width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--fill); color: var(--grey); cursor: pointer; font-size: 15px; line-height: 1; }
 
-    .scrim.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
+    .big-amt { font-family: var(--display); font-size: 60px; font-weight: 800; font-variation-settings: "wdth" 110; letter-spacing: -.05em; line-height: 1; text-align: center; margin: 12px 0 6px; font-variant-numeric: tabular-nums; }
+    .big-amt.void { text-decoration: line-through; text-decoration-thickness: 3px; color: var(--grey); }
+    .big-sub { text-align: center; color: var(--grey); margin: 0 0 28px; }
 
-    .sheet {
-      position: fixed;
-      z-index: 11;
-      left: 50%;
-      bottom: 0;
-      width: min(520px, 100%);
-      max-height: 92vh;
-      overflow-y: auto;
-      background: var(--group);
-      border-radius: 28px 28px 0 0;
-      padding: 10px 24px 32px;
-      transform: translate(-50%, 100%);
-      visibility: hidden;
-      transition: transform .45s var(--ease), visibility .45s;
-    }
+    .list { background: var(--fill); border-radius: 14px; margin-bottom: 20px; }
+    .list > div { display: flex; justify-content: space-between; gap: 16px; padding: 13px 16px; position: relative; font-size: 15px; }
+    .list > div + div::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: var(--sep); }
+    .list .k { color: var(--grey); flex-shrink: 0; }
+    .list .v { font-weight: 500; text-align: right; word-break: break-all; }
 
-    .sheet.open {
-      transform: translate(-50%, 0);
-      visibility: visible;
-    }
+    .track { list-style: none; margin: 0 0 24px; padding: 0 4px; }
+    .track li { display: grid; grid-template-columns: 22px 1fr; gap: 14px; padding-bottom: 20px; position: relative; }
+    .track li:not(:last-child)::after { content: ""; position: absolute; left: 10px; top: 24px; bottom: 2px; width: 2px; background: var(--white); }
+    .track .pip { width: 22px; height: 22px; border-radius: 50%; background: var(--white); color: var(--black); display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+    .track li.now .pip { background: var(--group); border: 2px solid var(--white); }
+    .track b { font-weight: 600; display: block; }
+    .track span { color: var(--grey); font-size: 14px; }
 
-    .grabber {
-      width: 40px;
-      height: 5px;
-      border-radius: 3px;
-      background: var(--sep);
-      margin: 0 auto 14px;
-    }
+    .banner { background: var(--white); color: var(--black); border-radius: 14px; padding: 14px 16px; margin-bottom: 20px; font-size: 15px; font-weight: 500; }
+    .stack { display: grid; gap: 10px; margin-bottom: 20px; }
 
-    .sheet-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
+    .amount-entry { text-align: center; margin: 8px 0 24px; }
+    .amount-entry input { width: 100%; border: 0; background: none; outline: none; text-align: center; font-family: var(--display); font-size: 68px; font-weight: 800; font-variation-settings: "wdth" 110; letter-spacing: -.05em; font-variant-numeric: tabular-nums; }
+    .amount-entry input::placeholder { color: var(--sep); }
+    .amount-entry span { color: var(--grey); font-weight: 600; }
+    .to-field { background: var(--fill); border-radius: 14px; padding: 4px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
+    .to-field label { color: var(--grey); font-size: 15px; }
+    .to-field input { flex: 1; border: 0; background: none; outline: none; padding: 12px 0; font-size: 15px; }
+    .to-field:focus-within { box-shadow: inset 0 0 0 1.5px var(--white); }
 
-    .sheet-top b {
-      font-size: 17px;
-      font-weight: 600;
-    }
+    .addr-big { font-size: 20px; font-weight: 600; letter-spacing: -.01em; word-break: break-all; text-align: center; background: var(--fill); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+    .hint { color: var(--grey); font-size: 15px; text-align: center; margin: 0 0 20px; }
 
-    .close {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      border: 0;
-      background: var(--fill);
-      color: var(--grey);
-      cursor: pointer;
-      font-size: 15px;
-      line-height: 1;
-    }
+    .notice { background: var(--white); color: var(--black); text-align: center; padding: 10px; font-size: 14px; font-weight: 500; }
+    .notice button { margin-left: 12px; background: var(--black); color: var(--white); border: 0; border-radius: 999px; padding: 4px 12px; cursor: pointer; font-weight: 600; }
 
-    .big-amt {
-      font-family: var(--display);
-      font-size: 60px;
-      font-weight: 800;
-      font-variation-settings: "wdth" 110;
-      letter-spacing: -.05em;
-      line-height: 1;
-      text-align: center;
-      margin: 12px 0 6px;
-      font-variant-numeric: tabular-nums;
-    }
+    .toast { position: fixed; left: 50%; top: 20px; transform: translate(-50%, -16px); background: var(--fill); color: var(--white); padding: 12px 20px; border-radius: 999px; font-size: 15px; font-weight: 500; opacity: 0; pointer-events: none; transition: opacity .2s, transform .3s var(--ease); z-index: 20; max-width: calc(100vw - 32px); box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-    .big-amt.void {
-      text-decoration: line-through;
-      text-decoration-thickness: 3px;
-      color: var(--grey);
-    }
-
-    .big-sub {
-      text-align: center;
-      color: var(--grey);
-      margin: 0 0 28px;
-    }
-
-    .list {
-      background: var(--fill);
-      border-radius: 14px;
-      margin-bottom: 20px;
-    }
-
-    .list>div {
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 13px 16px;
-      position: relative;
-      font-size: 15px;
-    }
-
-    .list>div+div::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 16px;
-      right: 0;
-      height: 1px;
-      background: var(--sep);
-    }
-
-    .list .k {
-      color: var(--grey);
-      flex-shrink: 0;
-    }
-
-    .list .v {
-      font-weight: 500;
-      text-align: right;
-      word-break: break-all;
-    }
-
-    .track {
-      list-style: none;
-      margin: 0 0 24px;
-      padding: 0 4px;
-    }
-
-    .track li {
-      display: grid;
-      grid-template-columns: 22px 1fr;
-      gap: 14px;
-      padding-bottom: 20px;
-      position: relative;
-    }
-
-    .track li:not(:last-child)::after {
-      content: "";
-      position: absolute;
-      left: 10px;
-      top: 24px;
-      bottom: 2px;
-      width: 2px;
-      background: var(--white);
-    }
-
-    .track .pip {
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      background: var(--white);
-      color: var(--black);
-      display: grid;
-      place-items: center;
-      font-size: 12px;
-      font-weight: 800;
-    }
-
-    .track li.now .pip {
-      background: var(--group);
-      border: 2px solid var(--white);
-    }
-
-    .track b {
-      font-weight: 600;
-      display: block;
-    }
-
-    .track span {
-      color: var(--grey);
-      font-size: 14px;
-    }
-
-    .banner {
-      background: var(--white);
-      color: var(--black);
-      border-radius: 14px;
-      padding: 14px 16px;
-      margin-bottom: 20px;
-      font-size: 15px;
-      font-weight: 500;
-    }
-
-    .stack {
-      display: grid;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .amount-entry {
-      text-align: center;
-      margin: 8px 0 24px;
-    }
-
-    .amount-entry input {
-      width: 100%;
-      border: 0;
-      background: none;
-      outline: none;
-      text-align: center;
-      font-family: var(--display);
-      font-size: 68px;
-      font-weight: 800;
-      font-variation-settings: "wdth" 110;
-      letter-spacing: -.05em;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .amount-entry input::placeholder {
-      color: var(--sep);
-    }
-
-    .amount-entry span {
-      color: var(--grey);
-      font-weight: 600;
-    }
-
-    .to-field {
-      background: var(--fill);
-      border-radius: 14px;
-      padding: 4px 16px;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .to-field label {
-      color: var(--grey);
-      font-size: 15px;
-    }
-
-    .to-field input {
-      flex: 1;
-      border: 0;
-      background: none;
-      outline: none;
-      padding: 12px 0;
-      font-size: 15px;
-    }
-
-    .to-field:focus-within {
-      box-shadow: inset 0 0 0 1.5px var(--white);
-    }
-
-    .addr-big {
-      font-size: 20px;
-      font-weight: 600;
-      letter-spacing: -.01em;
-      word-break: break-all;
-      text-align: center;
-      background: var(--fill);
-      border-radius: 14px;
-      padding: 20px;
-      margin-bottom: 16px;
-    }
-
-    .hint {
-      color: var(--grey);
-      font-size: 15px;
-      text-align: center;
-      margin: 0 0 20px;
-    }
-
-    .notice {
-      background: var(--white);
-      color: var(--black);
-      text-align: center;
-      padding: 10px;
-      font-size: 14px;
-      font-weight: 500;
-    }
-
-    .notice button {
-      margin-left: 12px;
-      background: var(--black);
-      color: var(--white);
-      border: 0;
-      border-radius: 999px;
-      padding: 4px 12px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    .toast {
-      position: fixed;
-      left: 50%;
-      top: 20px;
-      transform: translate(-50%, -16px);
-      background: var(--fill);
-      color: var(--white);
-      padding: 12px 20px;
-      border-radius: 999px;
-      font-size: 15px;
-      font-weight: 500;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .2s, transform .3s var(--ease);
-      z-index: 20;
-      max-width: calc(100vw - 32px);
-      box-shadow: 0 10px 40px rgba(0, 0, 0, .6);
-    }
-
-    .toast.show {
-      opacity: 1;
-      transform: translate(-50%, 0);
-    }
-
-    input[type=number]::-webkit-inner-spin-button,
-    input[type=number]::-webkit-outer-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-
-    input[type=number] {
-      -moz-appearance: textfield;
-    }
+    input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
 
     /* ================= Smaller screens ================= */
     @media (max-width: 900px) {
-      .hero {
-        grid-template-columns: 1fr;
-        min-height: 0;
-        gap: 24px;
-        padding-top: 12px;
-      }
-
+      .hero { grid-template-columns: 1fr; min-height: 0; gap: 24px; padding-top: 12px; }
       /* phone/tablet: the phone plays the three screens by itself; the steps sit underneath as a list */
-      .demo {
-        max-width: 440px;
-        width: 100%;
-      }
-
+      .demo { max-width: 440px; width: 100%; }
       /* Phones/tablets, top of page: one idea per screen.
          Screen 1 = headline + buttons. Screen 2 = the demo card. */
-      .hero {
-        display: block;
-      }
-
-      .hero-text {
-        min-height: calc(100svh - 80px);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-      }
-
-      .demo {
-        min-height: 86svh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        margin: 56px auto 0;
-      }
-
+      .hero { display: block; }
+      .hero-text { min-height: calc(100svh - 80px); display: flex; flex-direction: column; justify-content: center; }
+      .demo { min-height: 86svh; display: flex; flex-direction: column; justify-content: center; margin: 56px auto 0; }
       /* Phones/tablets: the timeline stacks, piece of UI under each title */
-      .story-head h2 {
-        margin-bottom: 40px;
-      }
-
-      .steps {
-        padding-left: 46px;
-      }
-
-      .steps::before,
-      .steps .fill {
-        left: 13px;
-        top: 14px;
-      }
-
-      .steps::before {
-        bottom: 70px;
-      }
-
-      .steps .fill {
-        max-height: calc(100% - 84px);
-      }
-
-      .steps article {
-        display: block;
-        padding: 0 0 52px;
-      }
-
-      .steps .num {
-        left: -46px;
-        width: 28px;
-        height: 28px;
-        font-size: 13px;
-      }
-
-      .steps h3 {
-        font-size: 28px;
-        padding-top: 0;
-      }
-
-      .tl-ui {
-        margin-top: 16px;
-        transform: translateY(20px) scale(.98);
-      }
-
-      .clean {
-        grid-template-columns: 1fr;
-        gap: 24px;
-      }
+      .story-head h2 { margin-bottom: 40px; }
+      .steps { padding-left: 46px; }
+      .steps::before, .steps .fill { left: 13px; top: 14px; }
+      .steps::before { bottom: 70px; }
+      .steps .fill { max-height: calc(100% - 84px); }
+      .steps article { display: block; padding: 0 0 52px; }
+      .steps .num { left: -46px; width: 28px; height: 28px; font-size: 13px; }
+      .steps h3 { font-size: 28px; padding-top: 0; }
+      .tl-ui { margin-top: 16px; transform: translateY(20px) scale(.98); }
+      .clean { grid-template-columns: 1fr; gap: 24px; }
     }
-
     @media (max-width: 520px) {
-      .bar {
-        padding: 14px 16px;
-      }
-
-      .bar nav a {
-        display: none;
-      }
-
-      .wrap {
-        padding: 20px 16px 96px;
-      }
-
-      .hero .lede {
-        font-size: 18px;
-        margin: 20px 0 28px;
-      }
-
-      .demo .stack {
-        padding-top: 92px;
-      }
-
-      .card {
-        padding: 20px 22px;
-        border-radius: 20px;
-      }
-
-      .card .amount {
-        font-size: 30px;
-      }
-
-      .card .wordmark {
-        font-size: 24px;
-      }
-
-      .front .famt {
-        font-size: 26px;
-      }
-
-      .steps p {
-        font-size: 17px;
-      }
-
-      .clean li {
-        grid-template-columns: 1fr;
-        gap: 6px;
-      }
+      .bar { padding: 14px 16px; }
+      .bar nav a { display: none; }
+      .wrap { padding: 20px 16px 96px; }
+      .hero .lede { font-size: 18px; margin: 20px 0 28px; }
+      .demo .stack { padding-top: 92px; }
+      .card { padding: 20px 22px; border-radius: 20px; }
+      .card .amount { font-size: 30px; }
+      .card .wordmark { font-size: 24px; }
+      .front .famt { font-size: 26px; }
+      .steps p { font-size: 17px; }
+      .clean li { grid-template-columns: 1fr; gap: 6px; }
     }
-
     @media (prefers-reduced-motion: reduce) {
-
-      *,
-      *::before,
-      *::after {
-        transition: none !important;
-        animation: none !important;
-      }
-
-      .display .line-in,
-      .fade,
-      [data-sec],
-      [data-up] {
-        transform: none;
-        opacity: 1;
-      }
-
-      .card {
-        transform: none !important;
-      }
+      *, *::before, *::after { transition: none !important; animation: none !important; }
+      .display .line-in, .fade, [data-sec], [data-up] { transform: none; opacity: 1; }
+      .card { transform: none !important; }
     }
   </style>
 </head>
-
 <body>
 
-  <div class="splash" id="splash" aria-hidden="true"><span class="wordmark wait">kiyu</span></div>
+<div class="splash" id="splash" aria-hidden="true"><span class="wordmark wait">kiyu</span></div>
 
-  <div class="notice" id="wrongNetwork" hidden>Your wallet is on a different network.<button id="switchNet">Switch
-      network</button></div>
+<div class="notice" id="wrongNetwork" hidden>Your wallet is on a different network.<button id="switchNet">Switch network</button></div>
 
-  <header class="bar">
-    <a class="wordmark wait" id="barMark" href="#" aria-label="Kiyu home">kiyu</a>
-    <nav id="topNav">
-      <a href="#how">How it works</a>
-      <a href="#clean">Safety</a>
-      <button class="acct white" data-connect>Connect</button>
-    </nav>
-    <button class="acct" id="acct" hidden></button>
-  </header>
+<header class="bar">
+  <a class="wordmark wait" id="barMark" href="#" aria-label="Kiyu home">kiyu</a>
+  <nav id="topNav">
+    <a href="#how">How it works</a>
+    <a href="#clean">Safety</a>
+    <button class="acct white" data-connect>Connect</button>
+  </nav>
+  <button class="acct" id="acct" hidden></button>
+</header>
 
-  <main class="wrap">
+<main class="wrap">
 
-    <!-- ===================== Welcome ===================== -->
-    <div id="welcome">
+  <!-- ===================== Welcome ===================== -->
+  <div id="welcome">
 
-      <!-- Hero -->
-      <section class="hero">
-        <div class="hero-text" data-sec>
-          <h1 class="display" data-split>
-            <span class="line"><span class="line-in">Money that</span></span>
-            <span class="line"><span class="line-in">waits for</span></span>
-            <span class="line"><span class="line-in">your yes.</span></span>
-          </h1>
-          <p class="lede fade">Every payment is held safely until you accept it. Nothing you didn't agree to reaches
-            your wallet.</p>
-          <div class="cta fade">
-            <button class="btn white" data-connect>Connect wallet</button>
-            <a class="btn" href="#how" style="text-decoration:none">See how it works</a>
-          </div>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-text" data-sec>
+        <h1 class="display" data-split>
+          <span class="line"><span class="line-in">Money that</span></span>
+          <span class="line"><span class="line-in">waits for</span></span>
+          <span class="line"><span class="line-in">your yes.</span></span>
+        </h1>
+        <p class="lede fade">Every payment is held safely until you accept it. Nothing you didn't agree to reaches your wallet.</p>
+        <div class="cta fade">
+          <button class="btn white" data-connect>Connect wallet</button>
+          <a class="btn" href="#how" style="text-decoration:none">See how it works</a>
         </div>
-
-        <div class="demo" id="demo" data-sec aria-label="Try Kiyu: accept or decline a sample payment">
-          <div class="stack">
-            <div class="notif" id="notif" aria-live="polite">
-              <span class="from" id="nFrom"></span>
-              <span class="amt" id="nAmt"></span>
-              <span class="why" id="nWhy"></span>
-            </div>
-            <div class="card-stage">
-              <div class="card" data-tilt id="demoCard">
-                <div class="top"><span class="wordmark">kiyu</span><span class="tag" id="demoTag">Protected</span></div>
-                <div class="bottom">
-                  <div>
-                    <div class="label">Balance</div>
-                    <div class="amount" id="demoBal"><small class="pre">RM</small>2,480.00</div>
-                  </div>
-                  <span class="owner">Sample card</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="demo-actions">
-            <span class="try">Try it</span>
-            <button class="btn white sm" id="demoAccept" disabled>Accept</button>
-            <button class="btn sm" id="demoDecline" disabled>Decline</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- How it works -->
-      <section class="story" id="how" data-sec>
-        <div class="story-head">
-          <h2 class="display" data-split data-reveal>
-            <span class="line"><span class="line-in">Three steps.</span></span>
-            <span class="line"><span class="line-in">You hold the last one.</span></span>
-          </h2>
-        </div>
-        <div class="steps">
-          <i class="fill" aria-hidden="true"></i>
-          <article data-step="1">
-            <div class="num">1</div>
-            <h3>Someone sends you money</h3>
-            <div class="tl-ui">
-              <div class="push">
-                <div class="app"><span class="wordmark">kiyu</span></div>
-                <div>
-                  <div class="h">Payment waiting <span>now</span></div>
-                  <p>Mei Ling sent you RM 150.00. It's held until you decide.</p>
-                </div>
-              </div>
-            </div>
-          </article>
-          <article data-step="2">
-            <div class="num">2</div>
-            <h3>Kiyu holds it</h3>
-            <div class="tl-ui">
-              <div class="tl-held">
-                <div class="hrow"><span>Held by Kiyu</span><b>RM 150</b></div>
-                <div class="meter"><i></i></div>
-                <div class="hrow small"><span>Nobody can move it</span><span>7 days to decide</span></div>
-              </div>
-            </div>
-          </article>
-          <article data-step="3">
-            <div class="num">3</div>
-            <h3>You decide</h3>
-            <div class="tl-ui">
-              <div class="tl-decide" id="tlDecide">
-                <div class="btns">
-                  <div>Accept</div>
-                  <div>Decline</div>
-                </div>
-                <div class="done"><span>✓</span>Accepted<em>RM 150 is yours</em></div>
-              </div>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <!-- Statement -->
-      <section class="statement" id="statement" data-sec>
-        <p class="big" id="bigLine">Only clean money reaches you.</p>
-        <p class="note" data-up>The name comes from kiyoi, Japanese for clean. That's the whole idea: what reaches you
-          is only what you said yes to.</p>
-      </section>
-
-      <!-- Safety -->
-      <section class="clean" id="clean" data-sec>
-        <h2 data-up>What keeps it clean</h2>
-        <ul>
-          <li data-up><b>Screening</b>
-            <p>Addresses known for fraud are blocked. Payments from them can only be declined.</p>
-          </li>
-          <li data-up><b>Reports</b>
-            <p>If a payment looks wrong, report the sender. Each payment can be reported once, by the person who
-              received it.</p>
-          </li>
-          <li data-up><b>5 of 7 reviewers</b>
-            <p>Seven reviewers look at reported senders. When five agree, the sender is blocked for everyone.</p>
-          </li>
-          <li data-up><b>Public record</b>
-            <p>Every accept, decline and block is recorded on the blockchain and can never be edited.</p>
-          </li>
-        </ul>
-      </section>
-
-      <!-- Ending -->
-      <section class="ending" data-sec>
-        <h2 class="display" data-split data-reveal>
-          <span class="line"><span class="line-in">Ready when you are.</span></span>
-        </h2>
-        <button class="btn white" data-connect data-up>Connect wallet</button>
-        <span class="wordmark giant wait" id="giant" aria-hidden="true">kiyu</span>
-      </section>
-    </div>
-
-    <!-- ===================== Home ===================== -->
-    <section class="home" id="home" hidden>
-      <div class="home-head">
-        <h1 class="hello" id="hello">Hello.</h1>
-        <p id="helloSub">Your money, waiting for your yes.</p>
       </div>
-      <!-- Waiting payments are dark cards tucked behind your card. Pick one, then accept or decline. -->
-      <div class="stackwrap" id="stackWrap">
-        <div class="pends" id="pends"></div>
+
+      <div class="demo" id="demo" data-sec aria-label="Try Kiyu: accept or decline a sample payment">
+        <div class="stack">
+        <div class="notif" id="notif" aria-live="polite">
+          <span class="from" id="nFrom"></span>
+          <span class="amt" id="nAmt"></span>
+          <span class="why" id="nWhy"></span>
+        </div>
         <div class="card-stage">
-          <div class="card" data-tilt id="homeCard">
-            <div class="top"><span class="wordmark">kiyu</span><span class="tag" id="cardTag">Protected</span></div>
+          <div class="card" data-tilt id="demoCard">
+            <div class="top"><span class="wordmark">kiyu</span><span class="tag" id="demoTag">Protected</span></div>
             <div class="bottom">
-              <div>
-                <div class="label">Balance</div>
-                <div class="amount" id="balance">0<small>ETH</small></div>
-              </div>
-              <span class="owner" id="cardOwner"></span>
+              <div><div class="label">Balance</div><div class="amount" id="demoBal"><small class="pre">RM</small>2,480.00</div></div>
+              <span class="owner">Sample card</span>
             </div>
           </div>
         </div>
-      </div>
-      <div class="panes">
-        <div class="pane off" id="frontPane">
-          <div class="front" id="front"></div>
         </div>
-        <div class="pane" id="actPane">
-          <p class="stack-hint" id="stackHint" hidden>Tap a waiting card to review it</p>
-          <div class="actions">
-            <button class="btn white" id="openSend">Send</button>
-            <button class="btn" id="openReceive">Receive</button>
-          </div>
+        <div class="demo-actions">
+          <span class="try">Try it</span>
+          <button class="btn white sm" id="demoAccept" disabled>Accept</button>
+          <button class="btn sm" id="demoDecline" disabled>Decline</button>
         </div>
-      </div>
-
-      <div class="block">
-        <div class="block-head">
-          <h2>Activity</h2>
-        </div>
-        <div class="ledger" id="activity"></div>
       </div>
     </section>
-  </main>
 
-  <!-- ===================== Sheets ===================== -->
-  <div class="scrim" id="scrim"></div>
-
-  <section class="sheet" id="detailSheet" role="dialog" aria-modal="true" aria-label="Payment details">
-    <div class="grabber"></div>
-    <div class="sheet-top"><b id="dTitle"></b><button class="close" data-close aria-label="Close">✕</button></div>
-    <div id="detail"></div>
-  </section>
-
-  <section class="sheet" id="sendSheet" role="dialog" aria-modal="true" aria-label="Send money">
-    <div class="grabber"></div>
-    <div class="sheet-top"><b>Send</b><button class="close" data-close aria-label="Close">✕</button></div>
-    <form id="sendForm" novalidate>
-      <div class="amount-entry">
-        <input id="amount" type="number" step="0.01" min="0" placeholder="0" inputmode="decimal"
-          aria-label="Amount in ringgit">
-        <span>RM, sent as USDC</span>
+    <!-- How it works -->
+    <section class="story" id="how" data-sec>
+      <div class="story-head">
+        <h2 class="display" data-split data-reveal>
+          <span class="line"><span class="line-in">Three steps.</span></span>
+          <span class="line"><span class="line-in">You hold the last one.</span></span>
+        </h2>
       </div>
-      <div class="to-field"><label for="to">To</label><input id="to" placeholder="0x… address" autocomplete="off"
-          spellcheck="false"></div>
-      <div class="list">
-        <div><span class="k">Network fee</span><span class="v" id="feeOut">Enter details</span></div>
-        <div><span class="k">Kiyu fee</span><span class="v">Free</span></div>
-        <div><span class="k">They receive, once they accept</span><span class="v" id="theyGet">RM 0.00</span></div>
-        <div><span class="k">If they don't accept in 7 days</span><span class="v">You can take it back</span></div>
+      <div class="steps">
+        <i class="fill" aria-hidden="true"></i>
+        <article data-step="1">
+          <div class="num">1</div>
+          <h3>Someone sends you money</h3>
+          <div class="tl-ui"><div class="push"><div class="app"><span class="wordmark">kiyu</span></div>
+            <div><div class="h">Payment waiting <span>now</span></div><p>Mei Ling sent you RM 150.00. It's held until you decide.</p></div></div></div>
+        </article>
+        <article data-step="2">
+          <div class="num">2</div>
+          <h3>Kiyu holds it</h3>
+          <div class="tl-ui"><div class="tl-held"><div class="hrow"><span>Held by Kiyu</span><b>RM 150</b></div><div class="meter"><i></i></div>
+            <div class="hrow small"><span>Nobody can move it</span><span>7 days to decide</span></div></div></div>
+        </article>
+        <article data-step="3">
+          <div class="num">3</div>
+          <h3>You decide</h3>
+          <div class="tl-ui"><div class="tl-decide" id="tlDecide"><div class="btns"><div>Accept</div><div>Decline</div></div>
+            <div class="done"><span>✓</span>Accepted<em>RM 150 is yours</em></div></div></div>
+        </article>
       </div>
-      <button class="btn white full" id="sendBtn" type="submit">Send</button>
-    </form>
+    </section>
+
+    <!-- Statement -->
+    <section class="statement" id="statement" data-sec>
+      <p class="big" id="bigLine">Only clean money reaches you.</p>
+      <p class="note" data-up>The name comes from kiyoi, Japanese for clean. That's the whole idea: what reaches you is only what you said yes to.</p>
+    </section>
+
+    <!-- Safety -->
+    <section class="clean" id="clean" data-sec>
+      <h2 data-up>What keeps it clean</h2>
+      <ul>
+        <li data-up><b>Screening</b><p>Addresses known for fraud are blocked. Payments from them can only be declined.</p></li>
+        <li data-up><b>Reports</b><p>If a payment looks wrong, report the sender. Each payment can be reported once, by the person who received it.</p></li>
+        <li data-up><b>5 of 7 reviewers</b><p>Seven reviewers look at reported senders. When five agree, the sender is blocked for everyone.</p></li>
+        <li data-up><b>Public record</b><p>Every accept, decline and block is recorded on the blockchain and can never be edited.</p></li>
+      </ul>
+    </section>
+
+    <!-- Ending -->
+    <section class="ending" data-sec>
+      <h2 class="display" data-split data-reveal>
+        <span class="line"><span class="line-in">Ready when you are.</span></span>
+      </h2>
+      <button class="btn white" data-connect data-up>Connect wallet</button>
+      <span class="wordmark giant wait" id="giant" aria-hidden="true">kiyu</span>
+    </section>
+  </div>
+
+  <!-- ===================== Home ===================== -->
+  <section class="home" id="home" hidden>
+    <div class="home-head">
+      <h1 class="hello" id="hello">Hello.</h1>
+      <p id="helloSub">Your money, waiting for your yes.</p>
+    </div>
+    <!-- Waiting payments are dark cards tucked behind your card. Pick one, then accept or decline. -->
+    <div class="stackwrap" id="stackWrap">
+      <div class="pends" id="pends"></div>
+      <div class="card-stage">
+        <div class="card" data-tilt id="homeCard">
+          <div class="top"><span class="wordmark">kiyu</span><span class="tag" id="cardTag">Protected</span></div>
+          <div class="bottom">
+            <div><div class="label">Balance</div><div class="amount" id="balance">0<small>ETH</small></div></div>
+            <span class="owner" id="cardOwner"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panes">
+      <div class="pane off" id="frontPane"><div class="front" id="front"></div></div>
+      <div class="pane" id="actPane">
+        <p class="stack-hint" id="stackHint" hidden>Tap a waiting card to review it</p>
+        <div class="actions">
+          <button class="btn white" id="openSend">Send</button>
+          <button class="btn" id="openReceive">Receive</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-head"><h2>Activity</h2></div>
+      <div class="ledger" id="activity"></div>
+    </div>
   </section>
+</main>
 
-  <section class="sheet" id="receiveSheet" role="dialog" aria-modal="true" aria-label="Receive money">
-    <div class="grabber"></div>
-    <div class="sheet-top"><b>Receive</b><button class="close" data-close aria-label="Close">✕</button></div>
-    <p class="hint">Share this address. Money sent to it through Kiyu will wait for you to accept.</p>
-    <div class="addr-big" id="fullAddr"></div>
-    <button class="btn white full" id="copyAddr">Copy address</button>
-  </section>
+<!-- ===================== Sheets ===================== -->
+<div class="scrim" id="scrim"></div>
 
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<section class="sheet" id="detailSheet" role="dialog" aria-modal="true" aria-label="Payment details">
+  <div class="grabber"></div>
+  <div class="sheet-top"><b id="dTitle"></b><button class="close" data-close aria-label="Close">✕</button></div>
+  <div id="detail"></div>
+</section>
 
-  <!-- =====================================================================
+<section class="sheet" id="sendSheet" role="dialog" aria-modal="true" aria-label="Send money">
+  <div class="grabber"></div>
+  <div class="sheet-top"><b>Send</b><button class="close" data-close aria-label="Close">✕</button></div>
+  <form id="sendForm" novalidate>
+    <div class="amount-entry">
+      <input id="amount" type="number" step="0.01" min="0" placeholder="0" inputmode="decimal" aria-label="Amount in ringgit">
+      <span>RM, sent as USDC</span>
+    </div>
+    <div class="to-field"><label for="to">To</label><input id="to" placeholder="0x… address" autocomplete="off" spellcheck="false"></div>
+    <div class="list">
+      <div><span class="k">Network fee</span><span class="v" id="feeOut">Enter details</span></div>
+      <div><span class="k">Kiyu fee</span><span class="v">Free</span></div>
+      <div><span class="k">They receive, once they accept</span><span class="v" id="theyGet">RM 0.00</span></div>
+      <div><span class="k">If they don't accept in 7 days</span><span class="v">You can take it back</span></div>
+    </div>
+    <button class="btn white full" id="sendBtn" type="submit">Send</button>
+  </form>
+</section>
+
+<section class="sheet" id="receiveSheet" role="dialog" aria-modal="true" aria-label="Receive money">
+  <div class="grabber"></div>
+  <div class="sheet-top"><b>Receive</b><button class="close" data-close aria-label="Close">✕</button></div>
+  <p class="hint">Share this address. Money sent to it through Kiyu will wait for you to accept.</p>
+  <div class="addr-big" id="fullAddr"></div>
+  <button class="btn white full" id="copyAddr">Copy address</button>
+</section>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- =====================================================================
      PART A: animations and the demo (plain script, works even without a wallet)
      ===================================================================== -->
-  <script>
-    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const fmt = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+<script>
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const fmt = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-    // ---------- A1. Count a number up smoothly ----------
-    // el shows `from`, animates to `to`. Used by the demo, the story and your real balance.
-    function countTo(el, from, to, ms = 900, unit = "ETH") {
-      // "RM" is written before the number, "ETH" after it
-      const show = (n) => unit === "RM" ? `<small class="pre">RM</small>${fmt(n)}` : `${fmt(n)}<small>${unit}</small>`;
-      if (still) { el.innerHTML = show(to); return; }
-      const t0 = performance.now();
-      (function tick(t) {
-        const p = Math.min((t - t0) / ms, 1), e = 1 - Math.pow(1 - p, 3);   // ease-out
-        el.innerHTML = show(from + (to - from) * e);
-        if (p < 1) requestAnimationFrame(tick);
-      })(t0);
-    }
-    function glint(card) { card.classList.remove("glint"); void card.offsetWidth; card.classList.add("glint"); }
+  // ---------- A1. Count a number up smoothly ----------
+  // el shows `from`, animates to `to`. Used by the demo, the story and your real balance.
+  function countTo(el, from, to, ms = 900, unit = "ETH") {
+    // "RM" is written before the number, "ETH" after it
+    const show = (n) => unit === "RM" ? `<small class="pre">RM</small>${fmt(n)}` : `${fmt(n)}<small>${unit}</small>`;
+    if (still) { el.innerHTML = show(to); return; }
+    const t0 = performance.now();
+    (function tick(t) {
+      const p = Math.min((t - t0) / ms, 1), e = 1 - Math.pow(1 - p, 3);   // ease-out
+      el.innerHTML = show(from + (to - from) * e);
+      if (p < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+  function glint(card) { card.classList.remove("glint"); void card.offsetWidth; card.classList.add("glint"); }
 
-    // ---------- A2. Keep a space at the end of each title line ----------
-    // Each line is its own block, so without this, copying the title gives "Money thatwaits for".
-    document.querySelectorAll("[data-split] .line-in").forEach((line) => {
-      line.textContent = line.textContent.trim() + " ";
+  // ---------- A2. Keep a space at the end of each title line ----------
+  // Each line is its own block, so without this, copying the title gives "Money thatwaits for".
+  document.querySelectorAll("[data-split] .line-in").forEach((line) => {
+    line.textContent = line.textContent.trim() + " ";
+  });
+
+  // ---------- A3. Logo flip: the top half appears, then the bottom half flips down ----------
+  function flip(mark) {
+    mark.classList.remove("flip", "wait"); void mark.offsetWidth;   // restart the animation
+    mark.classList.add("flip");
+  }
+  window.flipLogo = () => flip(document.getElementById("barMark"));   // the app calls this after you connect
+
+  // Splash on page load, then the curtain lifts and the hero title rises
+  const splash = document.getElementById("splash");
+  function startPage() { document.querySelector(".hero").classList.add("ready"); flip(document.getElementById("barMark")); }
+  if (still) { splash.remove(); startPage(); }
+  else {
+    const mark = splash.querySelector(".wordmark");
+    document.fonts.ready.then(() => {
+      flip(mark);
+      setTimeout(() => { splash.classList.add("out"); setTimeout(startPage, 250); }, 1500);
+      setTimeout(() => splash.remove(), 2600);
     });
+    splash.onclick = () => { splash.remove(); startPage(); };             // click to skip
+    setTimeout(() => { if (splash.isConnected && !splash.classList.contains("out")) { splash.classList.add("out"); startPage(); } }, 3500);   // fallback
+  }
 
-    // ---------- A3. Logo flip: the top half appears, then the bottom half flips down ----------
-    function flip(mark) {
-      mark.classList.remove("flip", "wait"); void mark.offsetWidth;   // restart the animation
-      mark.classList.add("flip");
-    }
-    window.flipLogo = () => flip(document.getElementById("barMark"));   // the app calls this after you connect
+  // ---------- A4. Titles rise out of their slot when scrolled into view; the giant logo flips ----------
+  const reveal = new IntersectionObserver((entries) => entries.forEach((e) => {
+    if (!e.isIntersecting) return;
+    if (e.target.id === "giant") flip(e.target); else e.target.classList.add("ready");
+    reveal.unobserve(e.target);
+  }), { threshold: .4 });
+  document.querySelectorAll("[data-reveal], #giant").forEach((el) => reveal.observe(el));
 
-    // Splash on page load, then the curtain lifts and the hero title rises
-    const splash = document.getElementById("splash");
-    function startPage() { document.querySelector(".hero").classList.add("ready"); flip(document.getElementById("barMark")); }
-    if (still) { splash.remove(); startPage(); }
-    else {
-      const mark = splash.querySelector(".wordmark");
-      document.fonts.ready.then(() => {
-        flip(mark);
-        setTimeout(() => { splash.classList.add("out"); setTimeout(startPage, 250); }, 1500);
-        setTimeout(() => splash.remove(), 2600);
-      });
-      splash.onclick = () => { splash.remove(); startPage(); };             // click to skip
-      setTimeout(() => { if (splash.isConnected && !splash.classList.contains("out")) { splash.classList.add("out"); startPage(); } }, 3500);   // fallback
-    }
-
-    // ---------- A4. Titles rise out of their slot when scrolled into view; the giant logo flips ----------
-    const reveal = new IntersectionObserver((entries) => entries.forEach((e) => {
-      if (!e.isIntersecting) return;
-      if (e.target.id === "giant") flip(e.target); else e.target.classList.add("ready");
-      reveal.unobserve(e.target);
-    }), { threshold: .4 });
-    document.querySelectorAll("[data-reveal], #giant").forEach((el) => reveal.observe(el));
-
-    // ---------- A5. Card tilts and catches light under the pointer ----------
-    document.querySelectorAll("[data-tilt]").forEach((card) => {
-      if (still) return;
-      card.addEventListener("pointermove", (e) => {
-        const r = card.getBoundingClientRect();
-        const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
-        card.style.setProperty("--ry", `${(x - .5) * 16}deg`);
-        card.style.setProperty("--rx", `${(.5 - y) * 16}deg`);
-        card.style.setProperty("--mx", `${x * 100}%`);
-        card.style.setProperty("--my", `${y * 100}%`);
-      });
-      card.addEventListener("pointerleave", () => {
-        ["--rx", "--ry"].forEach((p) => card.style.setProperty(p, "0deg"));
-        card.style.setProperty("--mx", "30%"); card.style.setProperty("--my", "20%");
-      });
+  // ---------- A5. Card tilts and catches light under the pointer ----------
+  document.querySelectorAll("[data-tilt]").forEach((card) => {
+    if (still) return;
+    card.addEventListener("pointermove", (e) => {
+      const r = card.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+      card.style.setProperty("--ry", `${(x - .5) * 16}deg`);
+      card.style.setProperty("--rx", `${(.5 - y) * 16}deg`);
+      card.style.setProperty("--mx", `${x * 100}%`);
+      card.style.setProperty("--my", `${y * 100}%`);
     });
+    card.addEventListener("pointerleave", () => {
+      ["--rx", "--ry"].forEach((p) => card.style.setProperty(p, "0deg"));
+      card.style.setProperty("--mx", "30%"); card.style.setProperty("--my", "20%");
+    });
+  });
 
-    // ---------- A6. The demo: fake payments you can accept or decline ----------
-    const demo = {
-      balance: 2480,
-      queue: [
-        { from: "Mei Ling", amt: 150 },
-        { from: "Daniel Tan", amt: 1200 },
-        { from: "Unknown account", amt: 3750, blocked: true },
-        { from: "Aiman", amt: 35.5 },
-      ],
-      i: 0,
-    };
-    const $$ = (id) => document.getElementById(id);
-    const notif = $$("notif"), accBtn = $$("demoAccept"), decBtn = $$("demoDecline"), demoTag = $$("demoTag");
+  // ---------- A6. The demo: fake payments you can accept or decline ----------
+  const demo = {
+    balance: 2480,
+    queue: [
+      { from: "Mei Ling", amt: 150 },
+      { from: "Daniel Tan", amt: 1200 },
+      { from: "Unknown account", amt: 3750, blocked: true },
+      { from: "Aiman", amt: 35.5 },
+    ],
+    i: 0,
+  };
+  const $$ = (id) => document.getElementById(id);
+  const notif = $$("notif"), accBtn = $$("demoAccept"), decBtn = $$("demoDecline"), demoTag = $$("demoTag");
 
-    function arrive() {
-      const p = demo.queue[demo.i++ % demo.queue.length];
-      demo.current = p;
-      notif.className = "notif" + (p.blocked ? " bad" : "");
-      $$("nFrom").innerHTML = `<b>${p.from}</b> sent you`;
-      $$("nAmt").textContent = `+RM ${fmt(p.amt)}`;
-      $$("nWhy").textContent = p.blocked ? "Sender blocked after reports. Decline only." : "Held by Kiyu until you decide";
-      requestAnimationFrame(() => requestAnimationFrame(() => notif.classList.add("in")));
-      demoTag.textContent = "1 waiting"; demoTag.classList.add("live");
-      accBtn.disabled = !!p.blocked; decBtn.disabled = false;
-    }
-    function settle(next) { accBtn.disabled = decBtn.disabled = true; setTimeout(arrive, next); }
+  function arrive() {
+    const p = demo.queue[demo.i++ % demo.queue.length];
+    demo.current = p;
+    notif.className = "notif" + (p.blocked ? " bad" : "");
+    $$("nFrom").innerHTML = `<b>${p.from}</b> sent you`;
+    $$("nAmt").textContent = `+RM ${fmt(p.amt)}`;
+    $$("nWhy").textContent = p.blocked ? "Sender blocked after reports. Decline only." : "Held by Kiyu until you decide";
+    requestAnimationFrame(() => requestAnimationFrame(() => notif.classList.add("in")));
+    demoTag.textContent = "1 waiting"; demoTag.classList.add("live");
+    accBtn.disabled = !!p.blocked; decBtn.disabled = false;
+  }
+  function settle(next) { accBtn.disabled = decBtn.disabled = true; setTimeout(arrive, next); }
 
-    accBtn.onclick = () => {
-      const p = demo.current; notif.classList.add("to-card");
-      setTimeout(() => {
-        countTo($$("demoBal"), demo.balance, demo.balance + p.amt, 900, "RM");
-        demo.balance += p.amt; glint($$("demoCard"));
-        demoTag.textContent = "Accepted"; demoTag.classList.remove("live");
-      }, 450);
-      settle(2400);
-    };
-    decBtn.onclick = () => {
-      notif.classList.add("away");
-      demoTag.textContent = "Returned to sender"; demoTag.classList.remove("live");
-      settle(2000);
-    };
-    setTimeout(arrive, still ? 0 : 1400);
+  accBtn.onclick = () => {
+    const p = demo.current; notif.classList.add("to-card");
+    setTimeout(() => {
+      countTo($$("demoBal"), demo.balance, demo.balance + p.amt, 900, "RM");
+      demo.balance += p.amt; glint($$("demoCard"));
+      demoTag.textContent = "Accepted"; demoTag.classList.remove("live");
+    }, 450);
+    settle(2400);
+  };
+  decBtn.onclick = () => {
+    notif.classList.add("away");
+    demoTag.textContent = "Returned to sender"; demoTag.classList.remove("live");
+    settle(2000);
+  };
+  setTimeout(arrive, still ? 0 : 1400);
 
-    // ---------- A7. How it works: the timeline follows your scroll ----------
-    const steps = [...document.querySelectorAll(".steps article")];
-    const stepsBox = document.querySelector(".steps"), tlDecide = $$("tlDecide");
-    function timeline() {
-      const line = innerHeight * .65;                 // a step "arrives" when its dot passes this line
-      steps.forEach((a) => {
-        const reached = a.getBoundingClientRect().top < line;
-        if (reached && !a.classList.contains("on") && a.dataset.step === "3") {   // step 3: tap Accept, then show the result
-          clearTimeout(tlDecide.t1); clearTimeout(tlDecide.t2);
-          tlDecide.t1 = setTimeout(() => tlDecide.classList.add("press"), 900);
-          tlDecide.t2 = setTimeout(() => tlDecide.classList.add("ok"), 1250);
-        }
-        if (!reached && a.dataset.step === "3") { clearTimeout(tlDecide.t1); clearTimeout(tlDecide.t2); tlDecide.classList.remove("press", "ok"); }
-        a.classList.toggle("on", reached);
-      });
-      stepsBox.style.setProperty("--fill", Math.max(0, line - stepsBox.getBoundingClientRect().top - 20) + "px");
-    }
-    addEventListener("scroll", timeline, { passive: true }); addEventListener("resize", timeline); timeline();
+  // ---------- A7. How it works: the timeline follows your scroll ----------
+  const steps = [...document.querySelectorAll(".steps article")];
+  const stepsBox = document.querySelector(".steps"), tlDecide = $$("tlDecide");
+  function timeline() {
+    const line = innerHeight * .65;                 // a step "arrives" when its dot passes this line
+    steps.forEach((a) => {
+      const reached = a.getBoundingClientRect().top < line;
+      if (reached && !a.classList.contains("on") && a.dataset.step === "3") {   // step 3: tap Accept, then show the result
+        clearTimeout(tlDecide.t1); clearTimeout(tlDecide.t2);
+        tlDecide.t1 = setTimeout(() => tlDecide.classList.add("press"), 900);
+        tlDecide.t2 = setTimeout(() => tlDecide.classList.add("ok"), 1250);
+      }
+      if (!reached && a.dataset.step === "3") { clearTimeout(tlDecide.t1); clearTimeout(tlDecide.t2); tlDecide.classList.remove("press", "ok"); }
+      a.classList.toggle("on", reached);
+    });
+    stepsBox.style.setProperty("--fill", Math.max(0, line - stepsBox.getBoundingClientRect().top - 20) + "px");
+  }
+  addEventListener("scroll", timeline, { passive: true }); addEventListener("resize", timeline); timeline();
 
-    // ---------- A7b. Sections fade in as they arrive, and out as they leave ----------
-    const secWatch = new IntersectionObserver((es) => es.forEach((e) => e.target.classList.toggle("vis", e.isIntersecting)),
-      { rootMargin: "-12% 0px -12% 0px" });
-    document.querySelectorAll("[data-sec]").forEach((el) => secWatch.observe(el));
-    // smaller items slide up once, one after another
-    const upWatch = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); upWatch.unobserve(e.target); } }), { threshold: .2 });
-    document.querySelectorAll("[data-up]").forEach((el, i) => { if (el.tagName === "LI") el.style.transitionDelay = (i % 4) * 80 + "ms"; upWatch.observe(el); });
+  // ---------- A7b. Sections fade in as they arrive, and out as they leave ----------
+  const secWatch = new IntersectionObserver((es) => es.forEach((e) => e.target.classList.toggle("vis", e.isIntersecting)),
+    { rootMargin: "-12% 0px -12% 0px" });
+  document.querySelectorAll("[data-sec]").forEach((el) => secWatch.observe(el));
+  // smaller items slide up once, one after another
+  const upWatch = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); upWatch.unobserve(e.target); } }), { threshold: .2 });
+  document.querySelectorAll("[data-up]").forEach((el, i) => { if (el.tagName === "LI") el.style.transitionDelay = (i % 4) * 80 + "ms"; upWatch.observe(el); });
 
-    // ---------- A8. Scroll effects: statement lights up, giant logo's slice opens ----------
-    const big = $$("bigLine");
-    big.innerHTML = big.textContent.split(" ").map((w) => `<span class="w">${w}</span>`).join(" ");
-    const words = big.querySelectorAll(".w");
-    const giant = $$("giant");
-    function onScroll() {
-      const vh = innerHeight;
-      const r = big.getBoundingClientRect();
-      const p = Math.min(Math.max((vh * .8 - r.top) / (r.height + vh * .35), 0), 1);   // 0 -> 1 while it crosses the screen
-      words.forEach((w, i) => (w.style.opacity = still ? 1 : .14 + .86 * Math.min(Math.max(p * words.length - i, 0), 1)));
-      const g = giant.getBoundingClientRect();
-      const q = Math.min(Math.max((vh - g.top) / g.height, 0), 1);
-      giant.style.setProperty("--gap", `${2 + q * 4}%`);   // the slice opens from 2% to 6%
-    }
-    addEventListener("scroll", onScroll, { passive: true }); onScroll();
-  </script>
+  // ---------- A8. Scroll effects: statement lights up, giant logo's slice opens ----------
+  const big = $$("bigLine");
+  big.innerHTML = big.textContent.split(" ").map((w) => `<span class="w">${w}</span>`).join(" ");
+  const words = big.querySelectorAll(".w");
+  const giant = $$("giant");
+  function onScroll() {
+    const vh = innerHeight;
+    const r = big.getBoundingClientRect();
+    const p = Math.min(Math.max((vh * .8 - r.top) / (r.height + vh * .35), 0), 1);   // 0 -> 1 while it crosses the screen
+    words.forEach((w, i) => (w.style.opacity = still ? 1 : .14 + .86 * Math.min(Math.max(p * words.length - i, 0), 1)));
+    const g = giant.getBoundingClientRect();
+    const q = Math.min(Math.max((vh - g.top) / g.height, 0), 1);
+    giant.style.setProperty("--gap", `${2 + q * 4}%`);   // the slice opens from 2% to 6%
+  }
+  addEventListener("scroll", onScroll, { passive: true }); onScroll();
+</script>
 
-  <!-- =====================================================================
+<!-- =====================================================================
      PART B: the real app (talks to your Kiyu contract through MetaMask)
      ===================================================================== -->
-  <script type="module">
-    import { createPublicClient, createWalletClient, custom, http, fallback, parseAbi, parseUnits, formatUnits, formatEther, isAddress } from "https://esm.sh/viem@2.21.0";
-    import { anvil, sepolia } from "https://esm.sh/viem@2.21.0/chains";
+<script type="module">
+  import { createPublicClient, createWalletClient, custom, http, fallback, parseAbi, parseUnits, formatUnits, formatEther, isAddress } from "https://esm.sh/viem@2.21.0";
+  import { anvil, sepolia } from "https://esm.sh/viem@2.21.0/chains";
 
-    // ---------- 1. Settings ----------
-    // Two networks. The site uses Sepolia, unless the address ends with ?local (then your Anvil).
-    const NETWORKS = {
-      sepolia: {
-        chain: sepolia,
-        rpc: "https://ethereum-sepolia-rpc.publicnode.com",
-        KIYU: "0x6A65B7D654268d8A24803155411ebcE8b4bBf840",      // your Kiyu on Sepolia
-        USDC: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",      // Circle's test USDC
-        poll: 4000,                                               // Sepolia makes a block every ~12s
-      },
-      local: {
-        chain: anvil,
-        rpc: "http://127.0.0.1:8545",
-        KIYU: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",      // from "kiyu start"
-        USDC: "0x5FbDB2315678afecb367f032d93F642f64180aa3",      // MockUSDC
-        poll: 1500,
-      },
-    };
-    const NET = NETWORKS[new URLSearchParams(location.search).has("local") ? "local" : "sepolia"];
-    const CHAIN = NET.chain;
-    const { KIYU, USDC } = NET;
-    const DECIMALS = 6;                                           // USDC: 1 USDC = 1,000,000 units
-    const RM_PER_USD = 4.08;                                      // fixed rate for now (Oct 2026). Later: fetch a live rate
+  // ---------- 1. Settings ----------
+  // Two networks. The site uses Sepolia, unless the address ends with ?local (then your Anvil).
+  const NETWORKS = {
+    sepolia: {
+      chain: sepolia,
+      rpc: "https://ethereum-sepolia-rpc.publicnode.com",
+      KIYU: "0x6A65B7D654268d8A24803155411ebcE8b4bBf840",      // your Kiyu on Sepolia
+      USDC: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",      // Circle's test USDC
+      poll: 4000,                                               // Sepolia makes a block every ~12s
+    },
+    local: {
+      chain: anvil,
+      rpc: "http://127.0.0.1:8545",
+      KIYU: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",      // from "kiyu start"
+      USDC: "0x5FbDB2315678afecb367f032d93F642f64180aa3",      // MockUSDC
+      poll: 1500,
+    },
+  };
+  const NET = NETWORKS[new URLSearchParams(location.search).has("local") ? "local" : "sepolia"];
+  const CHAIN = NET.chain;
+  const { KIYU, USDC } = NET;
+  const DECIMALS = 6;                                           // USDC: 1 USDC = 1,000,000 units
+  const RM_PER_USD = 4.08;                                      // fixed rate for now (Oct 2026). Later: fetch a live rate
 
-    // errors OpenZeppelin's ERC20 can throw, so we can show a friendly message
-    const tokenErrors = [
-      "error ERC20InsufficientBalance(address sender, uint256 balance, uint256 needed)",
-      "error ERC20InsufficientAllowance(address spender, uint256 allowance, uint256 needed)",
-    ];
-    const abi = parseAbi([
-      ...tokenErrors,
-      "function send(address recipient, uint256 amount) returns (uint256)",
-      "function accept(uint256 id)",
-      "function reject(uint256 id)",
-      "function refund(uint256 id)",
-      "function report(uint256 id)",
-      "function nextId() view returns (uint256)",
-      "function payments(uint256) view returns (address sender, address recipient, uint256 amount, uint256 deadline, uint8 status)",
-      "function blocked(address) view returns (bool)",
-      "function paymentReported(uint256) view returns (bool)",
-    ]);
-    const usdcAbi = parseAbi([
-      ...tokenErrors,
-      "function balanceOf(address) view returns (uint256)",
-      "function allowance(address owner, address spender) view returns (uint256)",
-      "function approve(address spender, uint256 amount) returns (bool)",
-    ]);
-    const WORKING = { approve: "Approving…", accept: "Accepting…", reject: "Declining…", report: "Reporting…", refund: "Taking it back…", send: "Sending…" };
-    const DONE = { accept: "Accepted", reject: "Declined and returned", report: "Sender reported", refund: "Taken back", send: "Sent. Waiting for them to accept" };
+  // errors OpenZeppelin's ERC20 can throw, so we can show a friendly message
+  const tokenErrors = [
+    "error ERC20InsufficientBalance(address sender, uint256 balance, uint256 needed)",
+    "error ERC20InsufficientAllowance(address spender, uint256 allowance, uint256 needed)",
+  ];
+  const abi = parseAbi([
+    ...tokenErrors,
+    "function send(address recipient, uint256 amount) returns (uint256)",
+    "function accept(uint256 id)",
+    "function reject(uint256 id)",
+    "function refund(uint256 id)",
+    "function report(uint256 id)",
+    "function nextId() view returns (uint256)",
+    "function payments(uint256) view returns (address sender, address recipient, uint256 amount, uint256 deadline, uint8 status)",
+    "function blocked(address) view returns (bool)",
+    "function paymentReported(uint256) view returns (bool)",
+  ]);
+  const usdcAbi = parseAbi([
+    ...tokenErrors,
+    "function balanceOf(address) view returns (uint256)",
+    "function allowance(address owner, address spender) view returns (uint256)",
+    "function approve(address spender, uint256 amount) returns (bool)",
+  ]);
+  const WORKING = { approve: "Approving…", accept: "Accepting…", reject: "Declining…", report: "Reporting…", refund: "Taking it back…", send: "Sending…" };
+  const DONE = { accept: "Accepted", reject: "Declined and returned", report: "Sender reported", refund: "Taken back", send: "Sent. Waiting for them to accept" };
 
-    // ---------- 2. Connections ----------
-    // READ (free): the public RPC first; if it fails, ask through MetaMask instead
-    const publicClient = createPublicClient({
-      chain: CHAIN,
-      transport: window.ethereum ? fallback([http(NET.rpc), custom(window.ethereum)]) : http(NET.rpc),
-    });
-    let walletClient, account;                                                      // WRITE (wallet signs)
-    let payments = [];
-    let now = 0n;
-    let shownBalance = null;   // what the card shows now, so changes can count up
+  // ---------- 2. Connections ----------
+  // READ (free): the public RPC first; if it fails, ask through MetaMask instead
+  const publicClient = createPublicClient({
+    chain: CHAIN,
+    transport: window.ethereum ? fallback([http(NET.rpc), custom(window.ethereum)]) : http(NET.rpc),
+  });
+  let walletClient, account;                                                      // WRITE (wallet signs)
+  let payments = [];
+  let now = 0n;
+  let shownBalance = null;   // what the card shows now, so changes can count up
 
-    const $ = (id) => document.getElementById(id);
-    const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
-    const eth = (wei, dp = 4) => Number(formatEther(wei)).toLocaleString(undefined, { maximumFractionDigits: dp });
-    // money: amounts on the chain are USDC units; we show them as RM
-    const toUsd = (units) => Number(formatUnits(units, DECIMALS));
-    const money = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const rm = (units) => `RM ${money(toUsd(units) * RM_PER_USD)}`;
-    const usdcText = (units) => `${toUsd(units).toLocaleString("en-US", { maximumFractionDigits: 2 })} USDC`;
-    const rmToUnits = (rmAmount) => parseUnits((rmAmount / RM_PER_USD).toFixed(DECIMALS), DECIMALS);
-    const me = () => account?.toLowerCase();
+  const $ = (id) => document.getElementById(id);
+  const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+  const eth = (wei, dp = 4) => Number(formatEther(wei)).toLocaleString(undefined, { maximumFractionDigits: dp });
+  // money: amounts on the chain are USDC units; we show them as RM
+  const toUsd = (units) => Number(formatUnits(units, DECIMALS));
+  const money = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const rm = (units) => `RM ${money(toUsd(units) * RM_PER_USD)}`;
+  const usdcText = (units) => `${toUsd(units).toLocaleString("en-US", { maximumFractionDigits: 2 })} USDC`;
+  const rmToUnits = (rmAmount) => parseUnits((rmAmount / RM_PER_USD).toFixed(DECIMALS), DECIMALS);
+  const me = () => account?.toLowerCase();
 
-    let toastTimer;
-    function toast(msg) {
-      const t = $("toast"); t.textContent = msg; t.classList.add("show");
-      clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+  let toastTimer;
+  function toast(msg) {
+    const t = $("toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+  }
+  function explain(e) {
+    const text = e?.shortMessage || e?.message || "";
+    const err = e?.cause?.data?.errorName || e?.cause?.cause?.data?.errorName;
+    if (err === "ERC20InsufficientBalance") return "You don't have enough USDC for this";
+    if (err === "ERC20InsufficientAllowance") return "Kiyu wasn't approved to send this amount. Try again";
+    if (/user rejected|denied/i.test(text)) return "Cancelled in your wallet";
+    const reason = e?.cause?.reason || e?.cause?.data?.args?.[0];
+    return reason || text.split("\n")[0] || "Something went wrong. Try again";
+  }
+
+  // ---------- 3. Connect ----------
+  async function connect() {
+    if (!window.ethereum) {
+      // On a phone (also inside the installed Kiyu app) there's no MetaMask here,
+      // so open this same page inside the MetaMask app instead.
+      if (/Android|iPhone|iPad/i.test(navigator.userAgent)) return void (location.href = `https://metamask.app.link/dapp/${location.host}${location.pathname}${location.search}`);
+      return toast("Install MetaMask to use Kiyu");
     }
-    function explain(e) {
-      const text = e?.shortMessage || e?.message || "";
-      const err = e?.cause?.data?.errorName || e?.cause?.cause?.data?.errorName;
-      if (err === "ERC20InsufficientBalance") return "You don't have enough USDC for this";
-      if (err === "ERC20InsufficientAllowance") return "Kiyu wasn't approved to send this amount. Try again";
-      if (/user rejected|denied/i.test(text)) return "Cancelled in your wallet";
-      const reason = e?.cause?.reason || e?.cause?.data?.args?.[0];
-      return reason || text.split("\n")[0] || "Something went wrong. Try again";
-    }
+    walletClient = createWalletClient({ chain: CHAIN, transport: custom(window.ethereum) });
+    try { [account] = await walletClient.requestAddresses(); } catch (e) { return toast(explain(e)); }
+    walletChain = await walletClient.getChainId().catch(() => CHAIN.id);
+    if (walletChain !== CHAIN.id) await switchNetwork();       // ask MetaMask to move to the right network
+    $("welcome").hidden = true; $("topNav").hidden = true;
+    $("home").hidden = false; $("acct").hidden = false;
+    scrollTo({ top: 0 });
+    window.flipLogo?.();
+    $("home").classList.add("enter");                         // card rises, rows slide in
+    setTimeout(() => $("home").classList.remove("enter"), 1400);
+    await refresh();
+    startLive();                                              // keep the page up to date by itself
+  }
+  document.querySelectorAll("[data-connect]").forEach((b) => (b.onclick = connect));
+  // register the service worker, which makes Kiyu installable as an app
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+  window.ethereum?.on?.("accountsChanged", (a) => { account = a[0]; shownBalance = null; lastSnapshot = ""; knownWaiting = null; closeSheets(); if (account) refresh(); });
+  window.ethereum?.on?.("chainChanged", (id) => { walletChain = Number(id); refresh(); });
+  async function switchNetwork() {
+    try {
+      try { await walletClient.switchChain({ id: CHAIN.id }); }
+      catch (e) { if (e?.code === 4902 || /unrecognized|not been added/i.test(e?.message || "")) await walletClient.addChain({ chain: CHAIN }); else throw e; }
+      walletChain = CHAIN.id; refresh();
+    } catch (e) { toast(explain(e)); }
+  }
+  $("switchNet").onclick = switchNetwork;
+  $("switchNet").textContent = `Switch to ${CHAIN.name}`;
 
-    // ---------- 3. Connect ----------
-    async function connect() {
-      if (!window.ethereum) return toast("Install MetaMask to use Kiyu");
-      walletClient = createWalletClient({ chain: CHAIN, transport: custom(window.ethereum) });
-      try { [account] = await walletClient.requestAddresses(); } catch (e) { return toast(explain(e)); }
-      walletChain = await walletClient.getChainId().catch(() => CHAIN.id);
-      if (walletChain !== CHAIN.id) await switchNetwork();       // ask MetaMask to move to the right network
-      $("welcome").hidden = true; $("topNav").hidden = true;
-      $("home").hidden = false; $("acct").hidden = false;
-      scrollTo({ top: 0 });
-      window.flipLogo?.();
-      $("home").classList.add("enter");                         // card rises, rows slide in
-      setTimeout(() => $("home").classList.remove("enter"), 1400);
+  // ---------- 4. Sheets ----------
+  function openSheet(id) { $("scrim").classList.add("open"); $(id).classList.add("open"); }
+  function closeSheets() { $("scrim").classList.remove("open"); document.querySelectorAll(".sheet").forEach((s) => s.classList.remove("open")); }
+  $("scrim").onclick = closeSheets;
+  document.querySelectorAll("[data-close]").forEach((b) => (b.onclick = closeSheets));
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (document.querySelector(".sheet.open")) return closeSheets();
+    document.querySelector("[data-unpick]")?.click();           // Esc also puts a picked card back
+  });
+
+  $("acct").onclick = () => openReceive();
+  $("openReceive").onclick = () => openReceive();
+  function openReceive() { $("fullAddr").textContent = account; openSheet("receiveSheet"); }
+  $("copyAddr").onclick = async () => { await navigator.clipboard?.writeText(account); toast("Address copied"); };
+
+  // ---------- 5. Write a transaction ----------
+  async function write(fn, args, value, button) {
+    const label = button?.textContent;
+    if (button) { button.disabled = true; button.textContent = WORKING[fn]; }
+    try {
+      const hash = await walletClient.writeContract({ address: KIYU, abi, functionName: fn, args, account });
+      await publicClient.waitForTransactionReceipt({ hash });
+      busy = true;                                            // pause live updates only while the animation plays
+      toast(DONE[fn]);
+      closeSheets();
+      await celebrate(fn, args[0]);                           // card slides into yours / flies away
       await refresh();
-      startLive();                                              // keep the page up to date by itself
+      return true;
+    } catch (e) {
+      toast(explain(e));
+      return false;
+    } finally {
+      busy = false;
+      if (button) { button.disabled = false; button.textContent = label; }
     }
-    document.querySelectorAll("[data-connect]").forEach((b) => (b.onclick = connect));
-    window.ethereum?.on?.("accountsChanged", (a) => { account = a[0]; shownBalance = null; lastSnapshot = ""; knownWaiting = null; closeSheets(); if (account) refresh(); });
-    window.ethereum?.on?.("chainChanged", (id) => { walletChain = Number(id); refresh(); });
-    async function switchNetwork() {
-      try {
-        try { await walletClient.switchChain({ id: CHAIN.id }); }
-        catch (e) { if (e?.code === 4902 || /unrecognized|not been added/i.test(e?.message || "")) await walletClient.addChain({ chain: CHAIN }); else throw e; }
-        walletChain = CHAIN.id; refresh();
-      } catch (e) { toast(explain(e)); }
-    }
-    $("switchNet").onclick = switchNetwork;
-    $("switchNet").textContent = `Switch to ${CHAIN.name}`;
+  }
 
-    // ---------- 4. Sheets ----------
-    function openSheet(id) { $("scrim").classList.add("open"); $(id).classList.add("open"); }
-    function closeSheets() { $("scrim").classList.remove("open"); document.querySelectorAll(".sheet").forEach((s) => s.classList.remove("open")); }
-    $("scrim").onclick = closeSheets;
-    document.querySelectorAll("[data-close]").forEach((b) => (b.onclick = closeSheets));
-    document.addEventListener("keydown", (e) => {
-      if (e.key !== "Escape") return;
-      if (document.querySelector(".sheet.open")) return closeSheets();
-      document.querySelector("[data-unpick]")?.click();           // Esc also puts a picked card back
-    });
+  // ---------- 6. Send ----------
+  // Tokens need two steps: 1) approve Kiyu to take the amount, 2) send.
+  // If Kiyu is already approved for enough, we skip step 1.
+  $("openSend").onclick = () => { openSheet("sendSheet"); setTimeout(() => $("amount").focus(), 300); };
+  let feeTimer;
+  function onSendInput() {
+    const v = Number($("amount").value) || 0;
+    $("theyGet").textContent = v > 0 ? `${usdcText(rmToUnits(v))} (RM ${money(v)})` : "RM 0.00";
+    $("sendBtn").textContent = v > 0 ? `Send RM ${money(v)}` : "Send";
+    clearTimeout(feeTimer); feeTimer = setTimeout(estimateFee, 300);
+  }
+  $("amount").oninput = onSendInput; $("to").oninput = onSendInput;
 
-    $("acct").onclick = () => openReceive();
-    $("openReceive").onclick = () => openReceive();
-    function openReceive() { $("fullAddr").textContent = account; openSheet("receiveSheet"); }
-    $("copyAddr").onclick = async () => { await navigator.clipboard?.writeText(account); toast("Address copied"); };
+  const allowanceOf = () => publicClient.readContract({ address: USDC, abi: usdcAbi, functionName: "allowance", args: [account, KIYU] });
 
-    // ---------- 5. Write a transaction ----------
-    async function write(fn, args, value, button) {
-      const label = button?.textContent;
-      if (button) { button.disabled = true; button.textContent = WORKING[fn]; }
-      try {
-        const hash = await walletClient.writeContract({ address: KIYU, abi, functionName: fn, args, account });
-        await publicClient.waitForTransactionReceipt({ hash });
-        busy = true;                                            // pause live updates only while the animation plays
-        toast(DONE[fn]);
-        closeSheets();
-        await celebrate(fn, args[0]);                           // card slides into yours / flies away
-        await refresh();
-        return true;
-      } catch (e) {
-        toast(explain(e));
-        return false;
-      } finally {
-        busy = false;
-        if (button) { button.disabled = false; button.textContent = label; }
-      }
-    }
-
-    // ---------- 6. Send ----------
-    // Tokens need two steps: 1) approve Kiyu to take the amount, 2) send.
-    // If Kiyu is already approved for enough, we skip step 1.
-    $("openSend").onclick = () => { openSheet("sendSheet"); setTimeout(() => $("amount").focus(), 300); };
-    let feeTimer;
-    function onSendInput() {
-      const v = Number($("amount").value) || 0;
-      $("theyGet").textContent = v > 0 ? `${usdcText(rmToUnits(v))} (RM ${money(v)})` : "RM 0.00";
-      $("sendBtn").textContent = v > 0 ? `Send RM ${money(v)}` : "Send";
-      clearTimeout(feeTimer); feeTimer = setTimeout(estimateFee, 300);
-    }
-    $("amount").oninput = onSendInput; $("to").oninput = onSendInput;
-
-    const allowanceOf = () => publicClient.readContract({ address: USDC, abi: usdcAbi, functionName: "allowance", args: [account, KIYU] });
-
-    async function estimateFee() {
-      const to = $("to").value.trim(), v = Number($("amount").value);
-      if (!isAddress(to) || !(v > 0)) { $("feeOut").textContent = "Enter details"; return; }
-      try {
-        const units = rmToUnits(v);
-        const price = await publicClient.getGasPrice();
-        if ((await allowanceOf()) < units) {
-          // can't estimate "send" before approving, so estimate the approve step
-          const gas = await publicClient.estimateContractGas({ address: USDC, abi: usdcAbi, functionName: "approve", args: [KIYU, units], account });
-          $("feeOut").textContent = `≈ ${eth(gas * price * 3n, 6)} ETH (2 steps)`;
-        } else {
-          const gas = await publicClient.estimateContractGas({ address: KIYU, abi, functionName: "send", args: [to, units], account });
-          $("feeOut").textContent = `≈ ${eth(gas * price, 6)} ETH`;
-        }
-      } catch (e) { $("feeOut").textContent = explain(e); }
-    }
-
-    $("sendForm").onsubmit = async (ev) => {
-      ev.preventDefault();
-      const to = $("to").value.trim(), v = Number($("amount").value);
-      if (!(v > 0)) return toast("Enter an amount above 0");
-      if (!isAddress(to)) return toast("Check the address. It starts with 0x and has 42 characters");
-      if (to.toLowerCase() === me()) return toast("You can't send to yourself");
-      const units = rmToUnits(v), btn = $("sendBtn"), label = btn.textContent;
-
-      // step 1: approve (only if needed)
+  async function estimateFee() {
+    const to = $("to").value.trim(), v = Number($("amount").value);
+    if (!isAddress(to) || !(v > 0)) { $("feeOut").textContent = "Enter details"; return; }
+    try {
+      const units = rmToUnits(v);
+      const price = await publicClient.getGasPrice();
       if ((await allowanceOf()) < units) {
-        btn.disabled = true; btn.textContent = "Step 1 of 2: approving…";
-        try {
-          const hash = await walletClient.writeContract({ address: USDC, abi: usdcAbi, functionName: "approve", args: [KIYU, units], account });
-          await publicClient.waitForTransactionReceipt({ hash });
-        } catch (e) { toast(explain(e)); btn.disabled = false; btn.textContent = label; return; }
-        btn.disabled = false; btn.textContent = label;
+        // can't estimate "send" before approving, so estimate the approve step
+        const gas = await publicClient.estimateContractGas({ address: USDC, abi: usdcAbi, functionName: "approve", args: [KIYU, units], account });
+        $("feeOut").textContent = `≈ ${eth(gas * price * 3n, 6)} ETH (2 steps)`;
+      } else {
+        const gas = await publicClient.estimateContractGas({ address: KIYU, abi, functionName: "send", args: [to, units], account });
+        $("feeOut").textContent = `≈ ${eth(gas * price, 6)} ETH`;
       }
-      // step 2: send
-      if (await write("send", [to, units], undefined, btn)) { $("sendForm").reset(); onSendInput(); }
-    };
+    } catch (e) { $("feeOut").textContent = explain(e); }
+  }
 
-    // ---------- 7. Read ----------
-    // Only one check runs at a time. If someone asks for another while one is running,
-    // we run it once more right after, instead of running two together (that caused duplicate rows).
-    let running = null, again = false;
-    function refresh() {
-      if (running) { again = true; return running; }
-      running = (async () => {
-        try { do { again = false; await withTimeout(readAll(), 15000); } while (again); }   // a stuck read can't freeze updates
-        finally { running = null; }
-      })();
-      return running;
+  $("sendForm").onsubmit = async (ev) => {
+    ev.preventDefault();
+    const to = $("to").value.trim(), v = Number($("amount").value);
+    if (!(v > 0)) return toast("Enter an amount above 0");
+    if (!isAddress(to)) return toast("Check the address. It starts with 0x and has 42 characters");
+    if (to.toLowerCase() === me()) return toast("You can't send to yourself");
+    const units = rmToUnits(v), btn = $("sendBtn"), label = btn.textContent;
+
+    // step 1: approve (only if needed)
+    if ((await allowanceOf()) < units) {
+      btn.disabled = true; btn.textContent = "Step 1 of 2: approving…";
+      try {
+        const hash = await walletClient.writeContract({ address: USDC, abi: usdcAbi, functionName: "approve", args: [KIYU, units], account });
+        await publicClient.waitForTransactionReceipt({ hash });
+      } catch (e) { toast(explain(e)); btn.disabled = false; btn.textContent = label; return; }
+      btn.disabled = false; btn.textContent = label;
     }
-    async function readAll() {
-      if (!account) return;
-      const who = account;                                        // if the account changes mid-way, throw this read away
-      $("wrongNetwork").hidden = walletChain === CHAIN.id;     // remembered, so we don't ask MetaMask every time
+    // step 2: send
+    if (await write("send", [to, units], undefined, btn)) { $("sendForm").reset(); onSendInput(); }
+  };
 
-      $("acct").textContent = short(account);
-      const units = await publicClient.readContract({ address: USDC, abi: usdcAbi, functionName: "balanceOf", args: [account] });
-      const bal = toUsd(units) * RM_PER_USD;                      // show the balance in RM
-      if (bal !== shownBalance) {                                 // only animate when it changed
-        countTo($("balance"), shownBalance ?? bal * .98, bal, shownBalance === null ? 1200 : 900, "RM");
-        if (shownBalance !== null && bal > shownBalance) glint($("homeCard"));
-      }
-      $("cardOwner").textContent = usdcText(units);
-      shownBalance = bal;
+  // ---------- 7. Read ----------
+  // Only one check runs at a time. If someone asks for another while one is running,
+  // we run it once more right after, instead of running two together (that caused duplicate rows).
+  let running = null, again = false;
+  function refresh() {
+    if (running) { again = true; return running; }
+    running = (async () => {
+      try { do { again = false; await withTimeout(readAll(), 15000); } while (again); }   // a stuck read can't freeze updates
+      finally { running = null; }
+    })();
+    return running;
+  }
+  async function readAll() {
+    if (!account) return;
+    const who = account;                                        // if the account changes mid-way, throw this read away
+    $("wrongNetwork").hidden = walletChain === CHAIN.id;     // remembered, so we don't ask MetaMask every time
 
-      const blockTime = (await publicClient.getBlock()).timestamp;
-      const total = await publicClient.readContract({ address: KIYU, abi, functionName: "nextId" });
-      const read = (functionName, args) => publicClient.readContract({ address: KIYU, abi, functionName, args });
-      const ids = Array.from({ length: Number(total) }, (_, i) => total - 1n - BigInt(i));   // newest first
-      // ask for every payment at once (much faster on Sepolia than one by one)
-      const rows = await Promise.all(ids.map(async (id) => {
-        const [sender, recipient, amount, deadline, status] = await read("payments", [id]);
-        const incoming = recipient.toLowerCase() === me();
-        if (!incoming && sender.toLowerCase() !== me()) return null;
-        const p = { id, sender, recipient, amount, deadline, status, incoming };
-        if (incoming) [p.blocked, p.reported] = await Promise.all([read("blocked", [sender]), read("paymentReported", [id])]);
-        return p;
-      }));
-      if (who !== account) return;
-      now = blockTime;
-      payments = rows.filter(Boolean);                            // a fresh list each time, never added onto the old one
-      // only redraw when a payment changed, so the page doesn't flicker on every new block
-      const snapshot = JSON.stringify(payments, (k, v) => (typeof v === "bigint" ? v.toString() : v)) + (now / 3600n);   // hour, so "days left" stays fresh
-      if (snapshot === lastSnapshot) return;
-      lastSnapshot = snapshot;
-
-      // a payment we haven't seen before arrived for us: tell the person
-      const waitingIds = payments.filter(isWaiting).map((p) => String(p.id));
-      const fresh = knownWaiting ? waitingIds.filter((id) => !knownWaiting.has(id)) : [];
-      knownWaiting = new Set(waitingIds);
-      render(fresh);
-      if (fresh.length) {
-        const p = payments.find((x) => String(x.id) === fresh[0]);
-        toast(fresh.length > 1 ? `${fresh.length} new payments waiting for you` : `${short(p.sender)} sent you ${rm(p.amount)}`);
-      }
+    $("acct").textContent = short(account);
+    const units = await publicClient.readContract({ address: USDC, abi: usdcAbi, functionName: "balanceOf", args: [account] });
+    const bal = toUsd(units) * RM_PER_USD;                      // show the balance in RM
+    if (bal !== shownBalance) {                                 // only animate when it changed
+      countTo($("balance"), shownBalance ?? bal * .98, bal, shownBalance === null ? 1200 : 900, "RM");
+      if (shownBalance !== null && bal > shownBalance) glint($("homeCard"));
     }
+    $("cardOwner").textContent = usdcText(units);
+    shownBalance = bal;
 
-    // ---------- 7b. Live updates ----------
-    // Watch the blockchain: every time a new block appears, check if anything changed.
-    let lastSnapshot = "", knownWaiting = null, busy = false, stopWatching = null, walletChain = CHAIN.id;
-    // give up on a check that takes too long, so one slow answer can't freeze live updates
-    const withTimeout = (promise, ms) => Promise.race([promise, new Promise((_, no) => setTimeout(() => no(new Error("timeout")), ms))]);
-    function startLive() {
-      stopWatching?.();
-      stopWatching = publicClient.watchBlockNumber({
-        pollingInterval: NET.poll,                                // ask the chain every few seconds
-        onBlockNumber: async () => {
-          if (busy || document.hidden) return;                    // skip while a transaction is running or the tab is hidden
-          busy = true;
-          try { await refresh(); } catch (e) { /* slow or restarting chain: try again next block */ }
-          busy = false;
-        },
-      });
-    }
-    document.addEventListener("visibilitychange", () => { if (!document.hidden && account) refresh(); });
+    const blockTime = (await publicClient.getBlock()).timestamp;
+    const total = await publicClient.readContract({ address: KIYU, abi, functionName: "nextId" });
+    const read = (functionName, args) => publicClient.readContract({ address: KIYU, abi, functionName, args });
+    const ids = Array.from({ length: Number(total) }, (_, i) => total - 1n - BigInt(i));   // newest first
+    // ask for every payment at once (much faster on Sepolia than one by one)
+    const rows = await Promise.all(ids.map(async (id) => {
+      const [sender, recipient, amount, deadline, status] = await read("payments", [id]);
+      const incoming = recipient.toLowerCase() === me();
+      if (!incoming && sender.toLowerCase() !== me()) return null;
+      const p = { id, sender, recipient, amount, deadline, status, incoming };
+      if (incoming) [p.blocked, p.reported] = await Promise.all([read("blocked", [sender]), read("paymentReported", [id])]);
+      return p;
+    }));
+    if (who !== account) return;
+    now = blockTime;
+    payments = rows.filter(Boolean);                            // a fresh list each time, never added onto the old one
+    // only redraw when a payment changed, so the page doesn't flicker on every new block
+    const snapshot = JSON.stringify(payments, (k, v) => (typeof v === "bigint" ? v.toString() : v)) + (now / 3600n);   // hour, so "days left" stays fresh
+    if (snapshot === lastSnapshot) return;
+    lastSnapshot = snapshot;
 
-    // ---------- 8. Render ----------
-    function timeLeft(p) {
-      const s = Number(p.deadline - now);
-      if (s <= 0) return null;
-      const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600);
-      return d > 0 ? `${d} day${d > 1 ? "s" : ""} left` : `${Math.max(h, 1)} hour${h > 1 ? "s" : ""} left`;
+    // a payment we haven't seen before arrived for us: tell the person
+    const waitingIds = payments.filter(isWaiting).map((p) => String(p.id));
+    const fresh = knownWaiting ? waitingIds.filter((id) => !knownWaiting.has(id)) : [];
+    knownWaiting = new Set(waitingIds);
+    render(fresh);
+    if (fresh.length) {
+      const p = payments.find((x) => String(x.id) === fresh[0]);
+      toast(fresh.length > 1 ? `${fresh.length} new payments waiting for you` : `${short(p.sender)} sent you ${rm(p.amount)}`);
     }
-    function subtitle(p) {
-      const left = timeLeft(p);
-      if (p.status === 0) {
-        if (p.incoming) return p.blocked ? "Stopped by Kiyu. The sender was blocked" : (left ?? "Expired");
-        return left ? `Waiting for them, ${left}` : "Not accepted in time";
-      }
-      if (p.status === 1) return p.incoming ? "Accepted" : "They accepted";
-      if (p.status === 2) return p.incoming ? "Declined" : "They declined";
-      return "Returned to sender";
+  }
+
+  // ---------- 7b. Live updates ----------
+  // Watch the blockchain: every time a new block appears, check if anything changed.
+  let lastSnapshot = "", knownWaiting = null, busy = false, stopWatching = null, walletChain = CHAIN.id;
+  // give up on a check that takes too long, so one slow answer can't freeze live updates
+  const withTimeout = (promise, ms) => Promise.race([promise, new Promise((_, no) => setTimeout(() => no(new Error("timeout")), ms))]);
+  function startLive() {
+    stopWatching?.();
+    stopWatching = publicClient.watchBlockNumber({
+      pollingInterval: NET.poll,                                // ask the chain every few seconds
+      onBlockNumber: async () => {
+        if (busy || document.hidden) return;                    // skip while a transaction is running or the tab is hidden
+        busy = true;
+        try { await refresh(); } catch (e) { /* slow or restarting chain: try again next block */ }
+        busy = false;
+      },
+    });
+  }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && account) refresh(); });
+
+  // ---------- 8. Render ----------
+  function timeLeft(p) {
+    const s = Number(p.deadline - now);
+    if (s <= 0) return null;
+    const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600);
+    return d > 0 ? `${d} day${d > 1 ? "s" : ""} left` : `${Math.max(h, 1)} hour${h > 1 ? "s" : ""} left`;
+  }
+  function subtitle(p) {
+    const left = timeLeft(p);
+    if (p.status === 0) {
+      if (p.incoming) return p.blocked ? "Stopped by Kiyu. The sender was blocked" : (left ?? "Expired");
+      return left ? `Waiting for them, ${left}` : "Not accepted in time";
     }
-    function rowHTML(p) {
-      const voided = p.status === 2 || p.status === 3;
-      const who = p.incoming ? `From ${short(p.sender)}` : `To ${short(p.recipient)}`;
-      let pill = "";
-      if (p.incoming && p.status === 0) pill = p.blocked ? `<span class="pill dim">Decline only</span>` : `<span class="pill">Review</span>`;
-      return `
+    if (p.status === 1) return p.incoming ? "Accepted" : "They accepted";
+    if (p.status === 2) return p.incoming ? "Declined" : "They declined";
+    return "Returned to sender";
+  }
+  function rowHTML(p) {
+    const voided = p.status === 2 || p.status === 3;
+    const who = p.incoming ? `From ${short(p.sender)}` : `To ${short(p.recipient)}`;
+    let pill = "";
+    if (p.incoming && p.status === 0) pill = p.blocked ? `<span class="pill dim">Decline only</span>` : `<span class="pill">Review</span>`;
+    return `
       <button class="row" data-open="${p.id}">
         <span><span class="title">${who}</span><br><span class="sub">${subtitle(p)}</span></span>
         <span class="right"><span class="amt ${voided ? "void" : ""}">${p.incoming ? "+" : "−"}${rm(p.amount)}</span>${pill ? "<br>" + pill : ""}</span>
       </button>`;
-    }
-    // ---------- The wallet stack ----------
-    let selId = null;            // which waiting payment is picked
-    const MAX_PEEK = 4;          // how many waiting cards peek out at once
-    // waiting = pending payments sent to you by senders who are NOT blocked.
-    // A blocked sender's payment is stopped by Kiyu: you never have to decide on it.
-    const isWaiting = (p) => p.incoming && p.status === 0 && !p.blocked;
-    function render(fresh = []) {
-      const waiting = payments.filter(isWaiting);
-      const rest = payments.filter((p) => !isWaiting(p));
-      if (!waiting.some((p) => p.id === selId)) selId = null;   // nothing picked until you tap a card
+  }
+  // ---------- The wallet stack ----------
+  let selId = null;            // which waiting payment is picked
+  const MAX_PEEK = 4;          // how many waiting cards peek out at once
+  // waiting = pending payments sent to you by senders who are NOT blocked.
+  // A blocked sender's payment is stopped by Kiyu: you never have to decide on it.
+  const isWaiting = (p) => p.incoming && p.status === 0 && !p.blocked;
+  function render(fresh = []) {
+    const waiting = payments.filter(isWaiting);
+    const rest = payments.filter((p) => !isWaiting(p));
+    if (!waiting.some((p) => p.id === selId)) selId = null;   // nothing picked until you tap a card
 
-      // dark cards behind your card: the newest sits closest
-      const shown = waiting.slice(0, MAX_PEEK);
-      $("stackWrap").style.setProperty("--peek", shown.length ? `${52 + (shown.length - 1) * 46 + 14}px` : "0px");
-      $("pends").innerHTML = shown.map((p, i) => `
+    // dark cards behind your card: the newest sits closest
+    const shown = waiting.slice(0, MAX_PEEK);
+    $("stackWrap").style.setProperty("--peek", shown.length ? `${52 + (shown.length - 1) * 46 + 14}px` : "0px");
+    $("pends").innerHTML = shown.map((p, i) => `
       <button class="pend ${p.blocked ? "bad" : ""} ${p.id === selId ? "sel" : ""} ${fresh.includes(String(p.id)) ? "new" : ""}" style="--i:${i}; z-index:${MAX_PEEK - i}" data-pick="${p.id}" aria-label="Payment from ${short(p.sender)}">
         <span><b>From ${short(p.sender)}</b><small>${p.blocked ? "Sender blocked" : (timeLeft(p) ?? "Expired")}</small></span>
         <span class="num">+${rm(p.amount)}</span>
       </button>`).join("");
-      renderFront(waiting);
+    renderFront(waiting);
 
-      // activity, grouped by the day it was sent (sent = deadline - 7 days)
-      let html = "", lastDay = "";
-      for (const p of rest) {
-        const day = dayLabel(Number(p.deadline) - 7 * 86400);
-        if (day !== lastDay) { html += `<div class="day">${day}</div>`; lastDay = day; }
-        html += ledgerHTML(p);
-      }
-      $("activity").innerHTML = html || `<p class="empty" style="padding:0">No activity yet.</p>`;
-
-      $("cardTag").textContent = waiting.length ? `${waiting.length} waiting` : "Protected";
-      $("cardTag").classList.toggle("live", waiting.length > 0);
-      const h = new Date().getHours();
-      $("hello").textContent = h < 12 ? "Good morning." : h < 18 ? "Good afternoon." : "Good evening.";
-      // the line under the greeting only shows when something is waiting
-      $("helloSub").textContent = waiting.length ? `${waiting.length} payment${waiting.length > 1 ? "s" : ""} waiting for your yes.` : "";
-      $("helloSub").hidden = !waiting.length;
+    // activity, grouped by the day it was sent (sent = deadline - 7 days)
+    let html = "", lastDay = "";
+    for (const p of rest) {
+      const day = dayLabel(Number(p.deadline) - 7 * 86400);
+      if (day !== lastDay) { html += `<div class="day">${day}</div>`; lastDay = day; }
+      html += ledgerHTML(p);
     }
+    $("activity").innerHTML = html || `<p class="empty" style="padding:0">No activity yet.</p>`;
 
-    function renderFront(waiting) {
-      const p = waiting.find((x) => x.id === selId);
-      $("stackHint").hidden = !waiting.length;                    // only when there's something to tap
-      $("frontPane").classList.toggle("off", !p);                // fold the decision panel in / out
-      $("actPane").classList.toggle("off", !!p);                 // Send/Receive fold away while deciding
-      $("frontPane").inert = !p; $("actPane").inert = !!p;      // the hidden one can't be tabbed into
-      $("home").classList.toggle("picking", !!p);
-      $("pends").classList.toggle("picking", !!p);
-      document.querySelectorAll(".pend").forEach((el) => el.classList.toggle("sel", !!p && el.dataset.pick === String(p.id)));
-      // While hidden, the panel still holds a payment (the one just closed, or the newest), so it keeps
-      // its real height and the page doesn't jump when you pick a card. Nothing waiting: empty and small.
-      const q = p ?? waiting.find((x) => x.id === lastFront) ?? waiting[0];
-      if (!q) { $("front").innerHTML = ""; $("front").hidden = true; lastFront = null; return; }
-      $("front").hidden = false;
-      // the little swap animation only plays when you switch cards while the panel is already open
-      const changed = p && lastPicked !== null && p.id !== lastPicked;
-      lastPicked = p ? p.id : null;
-      lastFront = q.id;
-      fillFront(q);
-      if (changed) { $("front").classList.remove("swap"); void $("front").offsetWidth; $("front").classList.add("swap"); }
-    }
-    let lastFront = null, lastPicked = null;
-    function fillFront(p) {
-      const left = timeLeft(p), canAccept = !p.blocked && left;
-      $("front").innerHTML = `
+    $("cardTag").textContent = waiting.length ? `${waiting.length} waiting` : "Protected";
+    $("cardTag").classList.toggle("live", waiting.length > 0);
+    const h = new Date().getHours();
+    $("hello").textContent = h < 12 ? "Good morning." : h < 18 ? "Good afternoon." : "Good evening.";
+    // the line under the greeting only shows when something is waiting
+    $("helloSub").textContent = waiting.length ? `${waiting.length} payment${waiting.length > 1 ? "s" : ""} waiting for your yes.` : "";
+    $("helloSub").hidden = !waiting.length;
+  }
+
+  function renderFront(waiting) {
+    const p = waiting.find((x) => x.id === selId);
+    $("stackHint").hidden = !waiting.length;                    // only when there's something to tap
+    $("frontPane").classList.toggle("off", !p);                // fold the decision panel in / out
+    $("actPane").classList.toggle("off", !!p);                 // Send/Receive fold away while deciding
+    $("frontPane").inert = !p; $("actPane").inert = !!p;      // the hidden one can't be tabbed into
+    $("home").classList.toggle("picking", !!p);
+    $("pends").classList.toggle("picking", !!p);
+    document.querySelectorAll(".pend").forEach((el) => el.classList.toggle("sel", !!p && el.dataset.pick === String(p.id)));
+    // While hidden, the panel still holds a payment (the one just closed, or the newest), so it keeps
+    // its real height and the page doesn't jump when you pick a card. Nothing waiting: empty and small.
+    const q = p ?? waiting.find((x) => x.id === lastFront) ?? waiting[0];
+    if (!q) { $("front").innerHTML = ""; $("front").hidden = true; lastFront = null; return; }
+    $("front").hidden = false;
+    // the little swap animation only plays when you switch cards while the panel is already open
+    const changed = p && lastPicked !== null && p.id !== lastPicked;
+    lastPicked = p ? p.id : null;
+    lastFront = q.id;
+    fillFront(q);
+    if (changed) { $("front").classList.remove("swap"); void $("front").offsetWidth; $("front").classList.add("swap"); }
+  }
+  let lastFront = null, lastPicked = null;
+  function fillFront(p) {
+    const left = timeLeft(p), canAccept = !p.blocked && left;
+    $("front").innerHTML = `
       <div class="ftop">
         <span><b>From ${short(p.sender)}</b><small>${p.blocked ? "Blocked after reports. You can only send it back." : (left ? `${left} to decide` : "The 7 days are over")}</small></span>
         <span class="famt">+${rm(p.amount)}</span>
@@ -2895,102 +1213,102 @@
         <button class="btn sm" data-fn="reject" data-id="${p.id}">${canAccept ? "Decline" : "Send it back"}</button>
       </div>
       <div class="fmeta"><button data-unpick>Not now</button><span>${canAccept ? "Tip: drag the card onto yours to accept" : ""}</span><button data-open="${p.id}">Details</button></div>`;
-    }
+  }
 
-    function dayLabel(t) {
-      const d = new Date(t * 1000), today = new Date(Number(now) * 1000);
-      const days = Math.floor((new Date(today.toDateString()) - new Date(d.toDateString())) / 86400000);
-      return days <= 0 ? "Today" : days === 1 ? "Yesterday" : d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
-    }
-    function ledgerHTML(p) {
-      const voided = p.status === 2 || p.status === 3;
-      const stopped = p.incoming && p.status === 0 && p.blocked;   // never reached you
-      const cls = voided || stopped ? "void" : p.incoming ? "" : "out";
-      return `
+  function dayLabel(t) {
+    const d = new Date(t * 1000), today = new Date(Number(now) * 1000);
+    const days = Math.floor((new Date(today.toDateString()) - new Date(d.toDateString())) / 86400000);
+    return days <= 0 ? "Today" : days === 1 ? "Yesterday" : d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  }
+  function ledgerHTML(p) {
+    const voided = p.status === 2 || p.status === 3;
+    const stopped = p.incoming && p.status === 0 && p.blocked;   // never reached you
+    const cls = voided || stopped ? "void" : p.incoming ? "" : "out";
+    return `
       <button class="lrow" data-open="${p.id}">
         <span><b>${p.incoming ? `From ${short(p.sender)}` : `To ${short(p.recipient)}`}</b><small>${subtitle(p)}</small></span>
         <span class="num ${cls}">${p.incoming ? "+" : "−"}${rm(p.amount)}</span>
       </button>`;
-    }
+  }
 
-    // pick a waiting card
-    document.addEventListener("click", (e) => {
-      const unpick = () => { selId = null; renderFront(payments.filter(isWaiting)); };
-      if (e.target.closest("[data-unpick]")) return unpick();
-      if (e.target.closest("#homeCard") && selId !== null) return unpick();   // tap your own card to put the picked one back
-      const pick = e.target.closest("[data-pick]");
-      if (!pick || pick.moved) return;
-      const id = BigInt(pick.dataset.pick);
-      selId = selId === id ? null : id;                           // tap the same card again to put it back
-      renderFront(payments.filter(isWaiting));
-    });
+  // pick a waiting card
+  document.addEventListener("click", (e) => {
+    const unpick = () => { selId = null; renderFront(payments.filter(isWaiting)); };
+    if (e.target.closest("[data-unpick]")) return unpick();
+    if (e.target.closest("#homeCard") && selId !== null) return unpick();   // tap your own card to put the picked one back
+    const pick = e.target.closest("[data-pick]");
+    if (!pick || pick.moved) return;
+    const id = BigInt(pick.dataset.pick);
+    selId = selId === id ? null : id;                           // tap the same card again to put it back
+    renderFront(payments.filter(isWaiting));
+  });
 
-    // drag a waiting card down onto your card to accept it
-    document.addEventListener("pointerdown", (e) => {
-      const el = e.target.closest(".pend");
-      if (!el || el.classList.contains("bad")) return;
-      const y0 = e.clientY; el.moved = false;
-      const move = (ev) => {
-        const dy = Math.max(-20, Math.min(160, ev.clientY - y0));
-        if (Math.abs(dy) > 6) { el.moved = true; el.classList.add("dragging"); }
-        el.style.setProperty("--dy", dy + "px");
-        el.style.setProperty("--rot", (dy / 160) * -2 + "deg");
-      };
-      const up = (ev) => {
-        removeEventListener("pointermove", move); removeEventListener("pointerup", up);
-        el.classList.remove("dragging"); el.style.removeProperty("--dy"); el.style.removeProperty("--rot");
-        if (el.moved && ev.clientY - y0 > 90) {               // dropped on the card: accept it
-          selId = BigInt(el.dataset.pick); renderFront(payments.filter(isWaiting));
-          document.querySelector('#front [data-fn="accept"]')?.click();
-        }
-        setTimeout(() => (el.moved = false), 0);
-      };
-      addEventListener("pointermove", move); addEventListener("pointerup", up);
-    });
-
-    // after the blockchain confirms: play the animation, then redraw
-    async function celebrate(fn, id) {
-      const el = document.querySelector(`.pend[data-pick="${id}"]`);
-      if (fn === "accept" && el) { el.classList.add("into"); await new Promise((r) => setTimeout(r, 450)); $("homeCard").classList.add("bump"); glint($("homeCard")); }
-      if (fn === "reject" && el) { el.classList.add("away"); await new Promise((r) => setTimeout(r, 450)); }
-      setTimeout(() => $("homeCard").classList.remove("bump"), 700);
-    }
-
-    // ---------- 9. Payment detail ----------
-    document.addEventListener("click", (e) => {
-      const act = e.target.closest("button[data-fn]");
-      if (act) return write(act.dataset.fn, [BigInt(act.dataset.id)], undefined, act);
-      const row = e.target.closest("[data-open]");
-      if (row) showDetail(BigInt(row.dataset.open));
-    });
-
-    function showDetail(id) {
-      const p = payments.find((x) => x.id === id);
-      if (!p) return;
-      const voided = p.status === 2 || p.status === 3;
-      const left = timeLeft(p);
-      const last = [
-        { t: p.incoming ? "Waiting for you" : "Waiting for them", s: left ?? "The 7 days are over", now: true },
-        { t: "Accepted", s: p.incoming ? "The money is in your wallet" : "They have the money" },
-        { t: "Declined", s: p.incoming ? "Returned to the sender" : "Returned to you" },
-        { t: "Not accepted in time", s: p.incoming ? "Returned to the sender" : "Returned to you" },
-      ][p.status];
-      const steps = [
-        { t: "Sent", s: p.incoming ? `${short(p.sender)} sent ${usdcText(p.amount)}` : `You sent ${usdcText(p.amount)}` },
-        { t: "Held by Kiyu", s: "Nobody can spend it while it waits" },
-        last,
-      ];
-
-      let actions = "";
-      if (p.incoming && p.status === 0 && !p.blocked) {
-        if (left) actions += `<button class="btn white full" data-fn="accept" data-id="${p.id}">Accept</button>`;
-        actions += `<button class="btn full" data-fn="reject" data-id="${p.id}">Decline</button>`;
+  // drag a waiting card down onto your card to accept it
+  document.addEventListener("pointerdown", (e) => {
+    const el = e.target.closest(".pend");
+    if (!el || el.classList.contains("bad")) return;
+    const y0 = e.clientY; el.moved = false;
+    const move = (ev) => {
+      const dy = Math.max(-20, Math.min(160, ev.clientY - y0));
+      if (Math.abs(dy) > 6) { el.moved = true; el.classList.add("dragging"); }
+      el.style.setProperty("--dy", dy + "px");
+      el.style.setProperty("--rot", (dy / 160) * -2 + "deg");
+    };
+    const up = (ev) => {
+      removeEventListener("pointermove", move); removeEventListener("pointerup", up);
+      el.classList.remove("dragging"); el.style.removeProperty("--dy"); el.style.removeProperty("--rot");
+      if (el.moved && ev.clientY - y0 > 90) {               // dropped on the card: accept it
+        selId = BigInt(el.dataset.pick); renderFront(payments.filter(isWaiting));
+        document.querySelector('#front [data-fn="accept"]')?.click();
       }
-      if (!p.incoming && p.status === 0 && !left) actions += `<button class="btn white full" data-fn="refund" data-id="${p.id}">Take it back</button>`;
-      if (p.incoming && !p.reported) actions += `<button class="btn link full" data-fn="report" data-id="${p.id}">Report sender</button>`;
+      setTimeout(() => (el.moved = false), 0);
+    };
+    addEventListener("pointermove", move); addEventListener("pointerup", up);
+  });
 
-      $("dTitle").textContent = p.incoming ? "Incoming" : "Sent";
-      $("detail").innerHTML = `
+  // after the blockchain confirms: play the animation, then redraw
+  async function celebrate(fn, id) {
+    const el = document.querySelector(`.pend[data-pick="${id}"]`);
+    if (fn === "accept" && el) { el.classList.add("into"); await new Promise((r) => setTimeout(r, 450)); $("homeCard").classList.add("bump"); glint($("homeCard")); }
+    if (fn === "reject" && el) { el.classList.add("away"); await new Promise((r) => setTimeout(r, 450)); }
+    setTimeout(() => $("homeCard").classList.remove("bump"), 700);
+  }
+
+  // ---------- 9. Payment detail ----------
+  document.addEventListener("click", (e) => {
+    const act = e.target.closest("button[data-fn]");
+    if (act) return write(act.dataset.fn, [BigInt(act.dataset.id)], undefined, act);
+    const row = e.target.closest("[data-open]");
+    if (row) showDetail(BigInt(row.dataset.open));
+  });
+
+  function showDetail(id) {
+    const p = payments.find((x) => x.id === id);
+    if (!p) return;
+    const voided = p.status === 2 || p.status === 3;
+    const left = timeLeft(p);
+    const last = [
+      { t: p.incoming ? "Waiting for you" : "Waiting for them", s: left ?? "The 7 days are over", now: true },
+      { t: "Accepted", s: p.incoming ? "The money is in your wallet" : "They have the money" },
+      { t: "Declined", s: p.incoming ? "Returned to the sender" : "Returned to you" },
+      { t: "Not accepted in time", s: p.incoming ? "Returned to the sender" : "Returned to you" },
+    ][p.status];
+    const steps = [
+      { t: "Sent", s: p.incoming ? `${short(p.sender)} sent ${usdcText(p.amount)}` : `You sent ${usdcText(p.amount)}` },
+      { t: "Held by Kiyu", s: "Nobody can spend it while it waits" },
+      last,
+    ];
+
+    let actions = "";
+    if (p.incoming && p.status === 0 && !p.blocked) {
+      if (left) actions += `<button class="btn white full" data-fn="accept" data-id="${p.id}">Accept</button>`;
+      actions += `<button class="btn full" data-fn="reject" data-id="${p.id}">Decline</button>`;
+    }
+    if (!p.incoming && p.status === 0 && !left) actions += `<button class="btn white full" data-fn="refund" data-id="${p.id}">Take it back</button>`;
+    if (p.incoming && !p.reported) actions += `<button class="btn link full" data-fn="report" data-id="${p.id}">Report sender</button>`;
+
+    $("dTitle").textContent = p.incoming ? "Incoming" : "Sent";
+    $("detail").innerHTML = `
       <p class="big-amt ${voided ? "void" : ""}">${p.incoming ? "+" : "−"}${rm(p.amount)}</p>
       <p class="big-sub">${usdcText(p.amount)}, ${p.incoming ? `from ${short(p.sender)}` : `to ${short(p.recipient)}`}</p>
       ${p.blocked && p.status === 0 && p.incoming ? `<div class="banner">Kiyu stopped this payment because the sender was blocked after reports. It will never reach your wallet. You don't need to do anything.</div>` : ""}
@@ -3004,9 +1322,8 @@
         <div><span class="k">To</span><span class="v">${p.recipient}</span></div>
         ${p.reported ? `<div><span class="k">Reported</span><span class="v">Yes</span></div>` : ""}
       </div>`;
-      openSheet("detailSheet");
-    }
-  </script>
+    openSheet("detailSheet");
+  }
+</script>
 </body>
-
 </html>
