@@ -1,7 +1,7 @@
-// Kiyu service worker: a small script the browser keeps for this site.
-// For now it does one job: lets Kiyu open even with a bad connection.
-// (Later it will also show push notifications.)
-const CACHE = "kiyu-v1";                       // change the number to throw away old saved files
+// Kiyu service worker: a small script the phone keeps for this site, even when Kiyu is closed.
+// Job 1: lets Kiyu open even with a bad connection.
+// Job 2: shows payment alerts sent by the Kiyu alerts server.
+const CACHE = "kiyu-v2";                       // change the number to throw away old saved files
 
 self.addEventListener("install", () => self.skipWaiting());          // use a new version right away
 self.addEventListener("activate", (e) => e.waitUntil((async () => {
@@ -28,4 +28,29 @@ self.addEventListener("fetch", (e) => {
       const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); return res;
     })));
   }
+});
+
+// ---------- Payment alerts ----------
+// The alerts server sends { title, body, url, tag }. We show it as a phone notification.
+self.addEventListener("push", (e) => {
+  let a = {};
+  try { a = e.data?.json() ?? {}; } catch { a = { body: e.data?.text() }; }
+  e.waitUntil(self.registration.showNotification(a.title || "Kiyu", {
+    body: a.body || "",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    tag: a.tag,                                   // same payment again: replace, don't stack
+    data: { url: a.url || "/" },
+  }));
+});
+
+// Tapping the alert: bring Kiyu to the front, or open it
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil((async () => {
+    const open = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const kiyu = open.find((c) => new URL(c.url).origin === self.location.origin);
+    if (kiyu) return kiyu.focus();
+    return self.clients.openWindow(e.notification.data?.url || "/");
+  })());
 });

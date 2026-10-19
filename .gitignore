@@ -19,5 +19,6 @@ docs/
 .env.*
 !.env.example
 .kiyu/
-.bot/node_modules
-.bot/.env
+
+# Node libraries: recreated by "npm install", never commit
+node_modules/
