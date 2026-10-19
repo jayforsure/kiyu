@@ -5,7 +5,7 @@ import http from "node:http";
 import { createHash } from "node:crypto";
 import pg from "pg";
 import webpush from "web-push";
-import { createPublicClient, http as rpc, parseAbi, formatUnits, isAddress } from "viem";
+import { createPublicClient, http as rpc, fallback, parseAbi, formatUnits, isAddress } from "viem";
 import { sepolia, anvil } from "viem/chains";
 
 // ---------- 1. Settings (from environment variables, never in code) ----------
@@ -13,15 +13,20 @@ try { process.loadEnvFile(); } catch { /* no .env file (e.g. on Railway): fine *
 
 const LOCAL = process.env.CHAIN === "local";
 const NET = LOCAL
-  ? { chain: anvil,   rpc: "http://127.0.0.1:8545",                       kiyu: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512" }
+  ? { chain: anvil, rpc: "http://127.0.0.1:8545", kiyu: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512" }
   : { chain: sepolia, rpc: "https://ethereum-sepolia-rpc.publicnode.com", kiyu: "0x6A65B7D654268d8A24803155411ebcE8b4bBf840" };
-const RPC = process.env.RPC_URL || NET.rpc;
+// Several free RPC providers: if one fails or is behind, the next one answers.
+// (Later, a free key from Alchemy or Infura is more reliable: put it first via RPC_URL.)
+const RPCS = [process.env.RPC_URL, NET.rpc, ...(LOCAL ? [] : ["https://sepolia.drpc.org", "https://1rpc.io/sepolia"])].filter(Boolean);
 const KIYU = process.env.KIYU_ADDRESS || NET.kiyu;
 const PORT = Number(process.env.PORT || 8080);                   // Railway sets PORT for us
 const SITE = process.env.SITE_URL || "https://kiyu-production.up.railway.app/";
 // only our own website may call the API
 const ALLOWED = (process.env.ALLOWED_ORIGINS || "https://kiyu-production.up.railway.app,http://localhost:5173").split(",").map((s) => s.trim());
 const EVERY = LOCAL ? 2000 : 12000;                              // check once per block
+// Public RPCs are groups of servers; some are a block behind. Asking about the very newest block
+// can reach one that hasn't seen it yet ("invalid parameters"). Staying 1 block behind avoids that.
+const BEHIND = LOCAL ? 0n : 1n;
 const RM_PER_USD = 4.08;
 
 for (const k of ["DATABASE_URL", "VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY"]) {
@@ -55,7 +60,10 @@ await db.query(`
 // The website asks your account to sign this exact text. Only the owner of the address can
 // produce a valid signature, so nobody can sign up for someone else's alerts.
 // The server writes the text itself; it never trusts text sent by the browser.
-const client = createPublicClient({ chain: NET.chain, transport: rpc(RPC) });
+const client = createPublicClient({
+  chain: NET.chain,
+  transport: fallback(RPCS.map((url) => rpc(url, { timeout: 10_000, retryCount: 1 }))),
+});
 const deviceId = (endpoint) => createHash("sha256").update(endpoint).digest("hex").slice(0, 16);
 const alertsMessage = (address, endpoint, signedAt) =>
   `Turn on Kiyu payment alerts for this device.\n\nAccount: ${address}\nDevice: ${deviceId(endpoint)}\nTime: ${signedAt}`;
@@ -159,7 +167,7 @@ let last;
   last = rows.length ? BigInt(rows[0].last_block) : await client.getBlockNumber();   // first run: start from now, don't alert old payments
   if (!rows.length) await saveLast(last);
 }
-console.log(`Watching Kiyu ${KIYU} on ${NET.chain.name} from block ${last}`);
+console.log(`Watching Kiyu ${KIYU} on ${NET.chain.name} from block ${last} (RPC: ${RPCS.map((u) => new URL(u).host).join(", ")})`);
 
 async function handle(log) {
   const id = log.args.id;
@@ -179,17 +187,17 @@ async function handle(log) {
 }
 
 async function check() {
-  const head = await client.getBlockNumber();
-  if (head < last) { last = head; await saveLast(last); }                 // local test chain was restarted
-  if (head === last) return;
+  const head = (await client.getBlockNumber()) - BEHIND;
+  if (head + 20n < last) { last = head; await saveLast(last); }          // chain went far back: local test chain was restarted
+  if (head <= last) return;                                              // nothing new yet
   const from = last + 1n;
-  const to = head - from > 499n ? from + 499n : head;                    // public RPCs limit the range per request
+  const to = head - from > 199n ? from + 199n : head;                    // public RPCs limit the range per request
   const logs = await client.getLogs({ address: KIYU, events: abi.filter((x) => x.type === "event"), fromBlock: from, toBlock: to });
   for (const log of logs) await handle(log);
   last = to; await saveLast(last);                                       // only after every alert went out
 }
 async function loop() {
-  try { await check(); } catch (e) { console.error("Check failed, retrying:", e.shortMessage ?? e.message); }
+  try { await check(); } catch (e) { console.error("Check failed, retrying:", (e.shortMessage ?? e.message).split("\n")[0], e.details ? `(${e.details})` : ""); }
   setTimeout(loop, EVERY);
 }
 loop();
