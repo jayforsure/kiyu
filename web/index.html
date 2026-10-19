@@ -1182,8 +1182,7 @@
       border: 0;
       color: #fff;
       text-align: left;
-      cursor: grab;
-      touch-action: none;
+      cursor: pointer;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
@@ -1249,12 +1248,6 @@
     }
 
     /* the one you pick lifts up and lights up */
-    .pend.dragging {
-      transition: none;
-      cursor: grabbing;
-      z-index: 11 !important;
-    }
-
     .pend b {
       font-weight: 600;
       font-size: 14px;
@@ -1276,12 +1269,6 @@
       .pends .pend .num {
         font-size: 20px;
       }
-
-      .front .fmeta span {
-        display: none;
-      }
-
-      /* the drag tip doesn't fit on small phones */
     }
 
     .pend small {
@@ -2337,7 +2324,7 @@
         <h2 data-up>What keeps it clean</h2>
         <ul>
           <li data-up><b>Screening</b>
-            <p>Addresses known for fraud are blocked. Payments from them can only be declined.</p>
+            <p>Addresses known for fraud are blocked. They can't send money through Kiyu at all.</p>
           </li>
           <li data-up><b>Reports</b>
             <p>If a payment looks wrong, report the sender. Each payment can be reported once, by the person who
@@ -2574,7 +2561,6 @@
       queue: [
         { from: "Mei Ling", amt: 150 },
         { from: "Daniel Tan", amt: 1200 },
-        { from: "Unknown account", amt: 3750, blocked: true },
         { from: "Aiman", amt: 35.5 },
       ],
       i: 0,
@@ -2585,13 +2571,13 @@
     function arrive() {
       const p = demo.queue[demo.i++ % demo.queue.length];
       demo.current = p;
-      notif.className = "notif" + (p.blocked ? " bad" : "");
+      notif.className = "notif";
       $$("nFrom").innerHTML = `<b>${p.from}</b> sent you`;
       $$("nAmt").textContent = `+RM ${fmt(p.amt)}`;
-      $$("nWhy").textContent = p.blocked ? "Sender blocked after reports. Decline only." : "Held by Kiyu until you decide";
+      $$("nWhy").textContent = "Held by Kiyu until you decide";
       requestAnimationFrame(() => requestAnimationFrame(() => notif.classList.add("in")));
       demoTag.textContent = "1 waiting"; demoTag.classList.add("live");
-      accBtn.disabled = !!p.blocked; decBtn.disabled = false;
+      accBtn.disabled = decBtn.disabled = false;
     }
     function settle(next) { accBtn.disabled = decBtn.disabled = true; setTimeout(arrive, next); }
 
@@ -3187,7 +3173,7 @@
         ${canAccept ? `<button class="btn white sm" data-fn="accept" data-id="${p.id}">Accept</button>` : ""}
         <button class="btn sm" data-fn="reject" data-id="${p.id}">${canAccept ? "Decline" : "Send it back"}</button>
       </div>
-      <div class="fmeta"><button data-unpick>Not now</button><span>${canAccept ? "Tip: drag the card onto yours to accept" : ""}</span><button data-open="${p.id}">Details</button></div>`;
+      <div class="fmeta"><button data-unpick>Not now</button><button data-open="${p.id}">Details</button></div>`;
     }
 
     function dayLabel(t) {
@@ -3212,33 +3198,10 @@
       if (e.target.closest("[data-unpick]")) return unpick();
       if (e.target.closest("#homeCard") && selId !== null) return unpick();   // tap your own card to put the picked one back
       const pick = e.target.closest("[data-pick]");
-      if (!pick || pick.moved) return;
+      if (!pick) return;
       const id = BigInt(pick.dataset.pick);
       selId = selId === id ? null : id;                           // tap the same card again to put it back
       renderFront(payments.filter(isWaiting));
-    });
-
-    // drag a waiting card down onto your card to accept it
-    document.addEventListener("pointerdown", (e) => {
-      const el = e.target.closest(".pend");
-      if (!el || el.classList.contains("bad")) return;
-      const y0 = e.clientY; el.moved = false;
-      const move = (ev) => {
-        const dy = Math.max(-20, Math.min(160, ev.clientY - y0));
-        if (Math.abs(dy) > 6) { el.moved = true; el.classList.add("dragging"); }
-        el.style.setProperty("--dy", dy + "px");
-        el.style.setProperty("--rot", (dy / 160) * -2 + "deg");
-      };
-      const up = (ev) => {
-        removeEventListener("pointermove", move); removeEventListener("pointerup", up);
-        el.classList.remove("dragging"); el.style.removeProperty("--dy"); el.style.removeProperty("--rot");
-        if (el.moved && ev.clientY - y0 > 90) {               // dropped on the card: accept it
-          selId = BigInt(el.dataset.pick); renderFront(payments.filter(isWaiting));
-          document.querySelector('#front [data-fn="accept"]')?.click();
-        }
-        setTimeout(() => (el.moved = false), 0);
-      };
-      addEventListener("pointermove", move); addEventListener("pointerup", up);
     });
 
     // after the blockchain confirms: play the animation, then redraw
