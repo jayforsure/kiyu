@@ -254,7 +254,7 @@
     /* One calm column: greeting, the card, two actions, then what's waiting and what happened */
     .home { max-width: 520px; margin: 0 auto; }
     .home-head { text-align: center; margin: 12px 0 40px; }
-    .hello { font-family: var(--display); font-weight: 800; font-variation-settings: "wdth" 108; font-size: clamp(40px, 6vw, 60px); letter-spacing: -.045em; line-height: 1; margin: 0 0 10px; }
+    .hello { font-family: var(--display); font-weight: 800; font-variation-settings: "wdth" 108; font-size: clamp(32px, 8.6vw, 60px); letter-spacing: -.045em; line-height: 1; margin: 0 0 10px; }
     .home-head p { margin: 0; color: var(--grey); }
     .home .card-stage { margin-bottom: 28px; }
     .home .card { width: 100%; max-width: 520px; }
@@ -404,6 +404,16 @@
     .addr-big { font-size: 20px; font-weight: 600; letter-spacing: -.01em; word-break: break-all; text-align: center; background: var(--fill); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
     .hint { color: var(--grey); font-size: 15px; text-align: center; margin: 0 0 20px; }
     .hint b { color: var(--white); font-weight: 600; word-break: break-all; }
+    /* Kiyu IDs */
+    .to-who { margin: -12px 4px 18px; min-height: 20px; font-size: 14px; color: var(--grey); }
+    .to-who.ok { color: var(--white); } .to-who.bad { color: #FF9F9A; }
+    .to-who b { font-weight: 600; }
+    .me-id { text-align: center; background: var(--fill); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+    .me-id b { display: block; font-size: 15px; font-weight: 500; color: var(--grey); margin-bottom: 4px; }
+    .me-id span { font-family: var(--display); font-weight: 800; font-variation-settings: "wdth" 108; font-size: 32px; letter-spacing: -.04em; overflow-wrap: anywhere; }
+    .addr-small { display: flex; align-items: center; gap: 10px; margin-top: 18px; font-size: 13px; color: var(--grey); }
+    .addr-small code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: inherit; }
+    .addr-small .linkish { margin: 0; }
     /* "Turn on alerts" card on the home page */
     .alerts { display: flex; align-items: center; gap: 14px; background: var(--group); border-radius: 22px; padding: 14px 14px 14px 16px; margin: -24px 0 40px; }
     .alerts .bell { width: 40px; height: 40px; border-radius: 50%; background: var(--white); color: var(--black); display: grid; place-items: center; flex-shrink: 0; }
@@ -664,7 +674,8 @@
       <input id="amount" type="number" step="0.01" min="0" placeholder="0" inputmode="decimal" aria-label="Amount in ringgit">
       <span>RM, sent as USDC</span>
     </div>
-    <div class="to-field"><label for="to">To</label><input id="to" placeholder="0x… address" autocomplete="off" spellcheck="false"></div>
+    <div class="to-field"><label for="to">To</label><input id="to" placeholder="@username or 0x… address" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+    <p class="to-who" id="toWho" aria-live="polite"></p>
     <div class="list">
       <div><span class="k">Network fee</span><span class="v" id="feeOut">Enter details</span></div>
       <div><span class="k">Kiyu fee</span><span class="v">Free</span></div>
@@ -678,11 +689,25 @@
 <section class="sheet" id="receiveSheet" role="dialog" aria-modal="true" aria-label="Receive money">
   <div class="grabber"></div>
   <div class="sheet-top"><b>Receive</b><button class="close" data-close aria-label="Close">✕</button></div>
-  <p class="hint">Share this address. Money sent to it through Kiyu will wait for you to accept.</p>
-  <div class="addr-big" id="fullAddr"></div>
-  <button class="btn white full" id="copyAddr">Copy address</button>
+  <p class="hint">Share your Kiyu ID. Money sent to you waits for you to accept.</p>
+  <div class="me-id" id="meId" hidden><b id="meName"></b><span id="meUser"></span></div>
+  <button class="btn white full" id="copyId" hidden>Copy @username</button>
+  <div class="addr-small"><span>Wallet address</span><code id="fullAddr"></code><button class="linkish" id="copyAddr" type="button">Copy</button></div>
+  <button class="linkish" id="editId">Set up your Kiyu ID</button>
   <button class="linkish" id="alertsLink" hidden>Turn on alerts on this device</button>
   <button class="linkish" id="signOut">Sign out</button>
+</section>
+
+<section class="sheet" id="idSheet" role="dialog" aria-modal="true" aria-label="Your Kiyu ID">
+  <div class="grabber"></div>
+  <div class="sheet-top"><b>Pick your Kiyu ID</b><button class="close" data-close aria-label="Close">✕</button></div>
+  <form id="idForm" novalidate>
+    <p class="hint">People send you money with your @username, not a long address.</p>
+    <div class="to-field"><label for="idName">Name</label><input id="idName" placeholder="Jay Lee" maxlength="40" autocomplete="name"></div>
+    <div class="to-field"><label for="idUser">@</label><input id="idUser" placeholder="username" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+    <p class="to-who" id="idCheck" aria-live="polite"></p>
+    <button class="btn white full" id="idBtn" type="submit">Save</button>
+  </form>
 </section>
 
 <section class="sheet" id="signSheet" role="dialog" aria-modal="true" aria-label="Sign in">
@@ -909,8 +934,8 @@
   // Paste yours from thirdweb.com > your project > Settings. Empty = MetaMask only.
   const THIRDWEB_CLIENT_ID = "9fd6b31d7a0b435e3240416459f6746a";
   const THIRDWEB = "https://esm.sh/thirdweb@5.121.6";              // fixed version, like viem
-  // Payment alerts: the address of the Kiyu alerts server on Railway. Empty = alerts hidden.
-  const ALERTS_API = "https://kiyu-alerts-production.up.railway.app";
+  // The Kiyu server on Railway (alerts + Kiyu IDs). Empty = alerts and @usernames are hidden.
+  const KIYU_API = "https://kiyu-alerts-production.up.railway.app";
   const EMAIL_LOGIN = !!THIRDWEB_CLIENT_ID && NET.chain.id === sepolia.id;   // the local Anvil chain uses MetaMask only
   const RM_PER_USD = 4.08;                                      // fixed rate for now (Oct 2026). Later: fetch a live rate
 
@@ -958,6 +983,11 @@
 
   const $ = (id) => document.getElementById(id);
   const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+  // names are typed by people, so always escape them before putting them in the page
+  const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const names = new Map();                                     // address (lowercase) -> { name, username } or null (no Kiyu ID)
+  const who = (a) => { const p = names.get(a.toLowerCase()); return p ? esc(p.name) : short(a); };   // "Ali Tan" or "0x7099…79C8"
+  let myProfile = null;
   const eth = (wei, dp = 4) => Number(formatEther(wei)).toLocaleString(undefined, { maximumFractionDigits: dp });
   // money: amounts on the chain are USDC units; we show them as RM
   const toUsd = (units) => Number(formatUnits(units, DECIMALS));
@@ -1117,12 +1147,12 @@
   // ---------- 3c. Payment alerts (push notifications) ----------
   // The phone gives us a private "push address" (subscription). We send it to the alerts server
   // together with your Kiyu address. When money arrives, the server pushes an alert to that phone.
-  const canAlert = () => !!ALERTS_API && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  const canAlert = () => !!KIYU_API && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
   const toKey = (b64) => {                                     // the server's public key, in the format the browser wants
     const s = atob((b64 + "=".repeat((4 - (b64.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/"));
     return Uint8Array.from(s, (c) => c.charCodeAt(0));
   };
-  const api = (path, body) => fetch(ALERTS_API + path, body ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : undefined)
+  const api = (path, body) => fetch(KIYU_API + path, body ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : undefined)
     .then((r) => { if (!r.ok) throw new Error(`alerts server said ${r.status}`); return r.json(); });
   let dismissed = false; try { dismissed = localStorage.getItem("kiyu.alertsDismissed") === "1"; } catch {}
   const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
@@ -1174,6 +1204,72 @@
   $("alertsLink").onclick = turnOnAlerts;
   $("alertsX").onclick = () => { dismissed = true; try { localStorage.setItem("kiyu.alertsDismissed", "1"); } catch {} $("alertsCard").hidden = true; };
 
+  // ---------- 3d. Kiyu IDs: your @username + name ----------
+  async function loadNames(addrs) {                            // ask the server for names we don't know yet
+    if (!KIYU_API) return;
+    const todo = [...new Set(addrs.map((a) => a.toLowerCase()))].filter((a) => !names.has(a)).slice(0, 100);
+    if (!todo.length) return;
+    try {
+      const { profiles } = await api("/profiles", { addresses: todo });
+      todo.forEach((a) => names.set(a, null));                   // remember "no Kiyu ID" too, so we don't ask again
+      profiles.forEach((p) => names.set(p.address, { name: p.name, username: p.username }));
+    } catch { /* server unreachable: just show addresses */ }
+  }
+  async function loadMyProfile() {
+    if (!KIYU_API) return;
+    try {
+      const r = await fetch(`${KIYU_API}/profile/a/${account}`);
+      myProfile = r.ok ? await r.json() : null;
+      if (myProfile) names.set(myProfile.address, { name: myProfile.name, username: myProfile.username });
+    } catch { myProfile = null; }
+  }
+  const profileMessage = (username, name, signedAt) =>
+    `Set my Kiyu ID.\n\nAccount: ${account}\nUsername: @${username}\nName: ${name}\nTime: ${signedAt}`;
+  function openIdSheet() {
+    $("idName").value = myProfile?.name ?? "";
+    $("idUser").value = myProfile?.username ?? "";
+    $("idCheck").textContent = ""; $("idCheck").className = "to-who";
+    openSheet("idSheet"); setTimeout(() => $(myProfile ? "idUser" : "idName").focus(), 300);
+  }
+  let idTimer, idOk = false;
+  async function checkUsername() {
+    const u = $("idUser").value.trim().replace(/^@/, "").toLowerCase(), out = $("idCheck");
+    idOk = false; out.className = "to-who";
+    if (!u) { out.textContent = ""; return; }
+    if (!/^[a-z][a-z0-9_]{2,19}$/.test(u)) { out.className = "to-who bad"; out.textContent = "3-20 letters, numbers or _, starting with a letter"; return; }
+    try {
+      const r = await (await fetch(`${KIYU_API}/username-available/${encodeURIComponent(u)}?address=${account}`)).json();
+      if ($("idUser").value.trim().replace(/^@/, "").toLowerCase() !== u) return;
+      idOk = r.available; out.className = r.available ? "to-who ok" : "to-who bad";
+      out.textContent = r.available ? `@${u} is available ✓` : r.reason;
+    } catch { out.className = "to-who bad"; out.textContent = "Couldn't check. Try again"; }
+  }
+  $("idUser").oninput = () => { idOk = false; clearTimeout(idTimer); idTimer = setTimeout(checkUsername, 300); };
+  $("idForm").onsubmit = async (ev) => {
+    ev.preventDefault();
+    const name = $("idName").value.replace(/\s+/g, " ").trim(), username = $("idUser").value.trim().replace(/^@/, "").toLowerCase(), btn = $("idBtn");
+    if (!name) return toast("Enter your name");
+    clearTimeout(idTimer); await checkUsername();
+    if (!idOk) return toast($("idCheck").textContent || "Pick a username");
+    btn.disabled = true; btn.textContent = "Saving…";
+    try {
+      // prove it's your account (free; MetaMask shows a "Sign" popup)
+      const signedAt = new Date().toISOString();
+      const signature = await signText(profileMessage(username, name, signedAt));
+      const r = await fetch(`${KIYU_API}/profile`, { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ address: account, username, name, signedAt, signature }) });
+      const out = await r.json();
+      if (!r.ok) throw new Error(out.error);
+      myProfile = out; names.set(out.address, { name: out.name, username: out.username });
+      closeSheets(); toast(`You're @${out.username}`);
+      lastSnapshot = ""; refresh();                              // redraw with your name
+    } catch (e) {
+      toast(/user rejected|denied|cancel/i.test(e?.shortMessage || e?.message || "") ? "Not saved" : (e.message || "Couldn't save. Try again"));
+      console.error(e);
+    }
+    btn.disabled = false; btn.textContent = "Save";
+  };
+
   // after signing in either way: show the home page
   async function enterHome() {
     $("welcome").hidden = true; $("topNav").hidden = true;
@@ -1182,9 +1278,11 @@
     window.flipLogo?.();
     $("home").classList.add("enter");                         // card rises, rows slide in
     setTimeout(() => $("home").classList.remove("enter"), 1400);
+    await loadMyProfile();                                    // your name and @username, if you have one
     await refresh();
     startLive();                                              // keep the page up to date by itself
     setupAlerts().catch(() => {});                            // offer payment alerts
+    if (KIYU_API && !myProfile) setTimeout(openIdSheet, 900);   // first time: pick your Kiyu ID
   }
   document.querySelectorAll("[data-connect]").forEach((b) => {
     b.onclick = connect;
@@ -1192,7 +1290,7 @@
   });
   // register the service worker, which makes Kiyu installable as an app
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
-  window.ethereum?.on?.("accountsChanged", (a) => { if (loginKind !== "metamask") return; account = a[0]; shownBalance = null; lastSnapshot = ""; knownWaiting = null; closeSheets(); if (account) refresh(); });
+  window.ethereum?.on?.("accountsChanged", async (a) => { if (loginKind !== "metamask") return; account = a[0]; shownBalance = null; lastSnapshot = ""; knownWaiting = null; myProfile = null; closeSheets(); if (account) { await loadMyProfile(); refresh(); } });
   window.ethereum?.on?.("chainChanged", (id) => { if (loginKind !== "metamask") return; walletChain = Number(id); refresh(); });
   async function switchNetwork() {
     try {
@@ -1217,8 +1315,17 @@
 
   $("acct").onclick = () => openReceive();
   $("openReceive").onclick = () => openReceive();
-  function openReceive() { $("fullAddr").textContent = account; openSheet("receiveSheet"); }
+  function openReceive() {
+    $("fullAddr").textContent = account;
+    $("meId").hidden = $("copyId").hidden = !myProfile;
+    if (myProfile) { $("meName").textContent = myProfile.name; $("meUser").textContent = `@${myProfile.username}`; }
+    $("editId").textContent = myProfile ? "Edit your Kiyu ID" : "Set up your Kiyu ID";
+    $("editId").hidden = !KIYU_API;
+    openSheet("receiveSheet");
+  }
   $("copyAddr").onclick = async () => { await navigator.clipboard?.writeText(account); toast("Address copied"); };
+  $("copyId").onclick = async () => { await navigator.clipboard?.writeText(`@${myProfile.username}`); toast(`@${myProfile.username} copied`); };
+  $("editId").onclick = () => { closeSheets(); setTimeout(openIdSheet, 250); };
 
   // ---------- 5. Write a transaction ----------
   async function write(fn, args, value, button) {
@@ -1253,14 +1360,43 @@
     $("sendBtn").textContent = v > 0 ? `Send RM ${money(v)}` : "Send";
     clearTimeout(feeTimer); feeTimer = setTimeout(estimateFee, 300);
   }
-  $("amount").oninput = onSendInput; $("to").oninput = onSendInput;
+  $("amount").oninput = onSendInput;
+  // "To" accepts @username (or just username) or a 0x address. We look the username up as you type.
+  let toAddress = null, toTimer;
+  async function resolveTo() {
+    const raw = $("to").value.trim(), out = $("toWho");
+    toAddress = null; out.className = "to-who"; out.textContent = "";
+    if (!raw) return;
+    if (raw.startsWith("0x")) {
+      if (!isAddress(raw)) { out.className = "to-who bad"; out.textContent = raw.length < 42 ? "" : "That address doesn't look right"; return; }
+      toAddress = raw;
+      await loadNames([raw]);
+      const p = names.get(raw.toLowerCase());
+      if (p) { out.className = "to-who ok"; out.innerHTML = `<b>${esc(p.name)}</b> · @${esc(p.username)} ✓`; }
+      return;
+    }
+    const u = raw.replace(/^@/, "").toLowerCase();
+    if (!KIYU_API) { out.className = "to-who bad"; out.textContent = "Enter a 0x… address"; return; }
+    if (!/^[a-z][a-z0-9_]{2,19}$/.test(u)) { out.textContent = u.length < 3 ? "" : "Usernames use letters, numbers and _"; return; }
+    out.textContent = "Looking up…";
+    try {
+      const r = await fetch(`${KIYU_API}/profile/u/${encodeURIComponent(u)}`);
+      if ($("to").value.trim().replace(/^@/, "").toLowerCase() !== u) return;    // you kept typing: ignore this old answer
+      if (r.status === 404) { out.className = "to-who bad"; out.textContent = `No one on Kiyu is @${u}`; return; }
+      const p = await r.json();
+      names.set(p.address, { name: p.name, username: p.username });
+      toAddress = p.address;
+      out.className = "to-who ok"; out.innerHTML = `<b>${esc(p.name)}</b> · @${esc(p.username)} ✓`;
+    } catch { out.className = "to-who bad"; out.textContent = "Couldn't look that up. Try again"; }
+  }
+  $("to").oninput = () => { toAddress = null; clearTimeout(toTimer); toTimer = setTimeout(async () => { await resolveTo(); onSendInput(); }, 300); onSendInput(); };
 
   const allowanceOf = () => publicClient.readContract({ address: USDC, abi: usdcAbi, functionName: "allowance", args: [account, KIYU] });
 
   async function estimateFee() {
-    const to = $("to").value.trim(), v = Number($("amount").value);
+    const to = toAddress, v = Number($("amount").value);
     if (loginKind === "email") { $("feeOut").textContent = "Paid by Kiyu"; return; }   // gas is sponsored
-    if (!isAddress(to) || !(v > 0)) { $("feeOut").textContent = "Enter details"; return; }
+    if (!to || !isAddress(to) || !(v > 0)) { $("feeOut").textContent = "Enter details"; return; }
     try {
       const units = rmToUnits(v);
       const price = await publicClient.getGasPrice();
@@ -1277,9 +1413,10 @@
 
   $("sendForm").onsubmit = async (ev) => {
     ev.preventDefault();
-    const to = $("to").value.trim(), v = Number($("amount").value);
+    clearTimeout(toTimer); await resolveTo();                 // make sure we use the latest lookup
+    const to = toAddress, v = Number($("amount").value);
     if (!(v > 0)) return toast("Enter an amount above 0");
-    if (!isAddress(to)) return toast("Check the address. It starts with 0x and has 42 characters");
+    if (!to) return toast($("to").value.trim() ? "Check who you're sending to" : "Enter a @username or 0x… address");
     if (to.toLowerCase() === me()) return toast("You can't send to yourself");
     const units = rmToUnits(v), btn = $("sendBtn"), label = btn.textContent;
 
@@ -1293,7 +1430,7 @@
       btn.disabled = false; btn.textContent = label;
     }
     // step 2: send
-    if (await write("send", [to, units], undefined, btn)) { $("sendForm").reset(); onSendInput(); }
+    if (await write("send", [to, units], undefined, btn)) { $("sendForm").reset(); toAddress = null; $("toWho").textContent = ""; onSendInput(); }
   };
 
   // ---------- 7. Read ----------
@@ -1310,10 +1447,10 @@
   }
   async function readAll() {
     if (!account) return;
-    const who = account;                                        // if the account changes mid-way, throw this read away
+    const forAccount = account;                                 // if the account changes mid-way, throw this read away
     $("wrongNetwork").hidden = walletChain === CHAIN.id;     // remembered, so we don't ask MetaMask every time
 
-    $("acct").textContent = short(account);
+    $("acct").textContent = myProfile ? `@${myProfile.username}` : short(account);
     const units = await publicClient.readContract({ address: USDC, abi: usdcAbi, functionName: "balanceOf", args: [account] });
     const bal = toUsd(units) * RM_PER_USD;                      // show the balance in RM
     if (bal !== shownBalance) {                                 // only animate when it changed
@@ -1336,11 +1473,12 @@
       if (incoming) [p.blocked, p.reported] = await Promise.all([read("blocked", [sender]), read("paymentReported", [id])]);
       return p;
     }));
-    if (who !== account) return;
+    if (forAccount !== account) return;
     now = blockTime;
     payments = rows.filter(Boolean);                            // a fresh list each time, never added onto the old one
+    await loadNames(payments.flatMap((p) => [p.sender, p.recipient]));
     // only redraw when a payment changed, so the page doesn't flicker on every new block
-    const snapshot = JSON.stringify(payments, (k, v) => (typeof v === "bigint" ? v.toString() : v)) + (now / 3600n);   // hour, so "days left" stays fresh
+    const snapshot = JSON.stringify(payments, (k, v) => (typeof v === "bigint" ? v.toString() : v)) + (now / 3600n) + names.size + (myProfile?.username ?? "");   // hour, so "days left" stays fresh
     if (snapshot === lastSnapshot) return;
     lastSnapshot = snapshot;
 
@@ -1351,7 +1489,7 @@
     render(fresh);
     if (fresh.length) {
       const p = payments.find((x) => String(x.id) === fresh[0]);
-      toast(fresh.length > 1 ? `${fresh.length} new payments waiting for you` : `${short(p.sender)} sent you ${rm(p.amount)}`);
+      toast(fresh.length > 1 ? `${fresh.length} new payments waiting for you` : `${names.get(p.sender.toLowerCase())?.name ?? short(p.sender)} sent you ${rm(p.amount)}`);
     }
   }
 
@@ -1393,12 +1531,12 @@
   }
   function rowHTML(p) {
     const voided = p.status === 2 || p.status === 3;
-    const who = p.incoming ? `From ${short(p.sender)}` : `To ${short(p.recipient)}`;
+    const whoText = p.incoming ? `From ${who(p.sender)}` : `To ${who(p.recipient)}`;
     let pill = "";
     if (p.incoming && p.status === 0) pill = p.blocked ? `<span class="pill dim">Decline only</span>` : `<span class="pill">Review</span>`;
     return `
       <button class="row" data-open="${p.id}">
-        <span><span class="title">${who}</span><br><span class="sub">${subtitle(p)}</span></span>
+        <span><span class="title">${whoText}</span><br><span class="sub">${subtitle(p)}</span></span>
         <span class="right"><span class="amt ${voided ? "void" : ""}">${p.incoming ? "+" : "−"}${rm(p.amount)}</span>${pill ? "<br>" + pill : ""}</span>
       </button>`;
   }
@@ -1418,7 +1556,7 @@
     $("stackWrap").style.setProperty("--peek", shown.length ? `${52 + (shown.length - 1) * 46 + 14}px` : "0px");
     $("pends").innerHTML = shown.map((p, i) => `
       <button class="pend ${p.blocked ? "bad" : ""} ${p.id === selId ? "sel" : ""} ${fresh.includes(String(p.id)) ? "new" : ""}" style="--i:${i}; z-index:${MAX_PEEK - i}" data-pick="${p.id}" aria-label="Payment from ${short(p.sender)}">
-        <span><b>From ${short(p.sender)}</b><small>${p.blocked ? "Sender blocked" : (timeLeft(p) ?? "Expired")}</small></span>
+        <span><b>From ${who(p.sender)}</b><small>${p.blocked ? "Sender blocked" : (timeLeft(p) ?? "Expired")}</small></span>
         <span class="num">+${rm(p.amount)}</span>
       </button>`).join("");
     renderFront(waiting);
@@ -1435,7 +1573,8 @@
     $("cardTag").textContent = waiting.length ? `${waiting.length} waiting` : "Protected";
     $("cardTag").classList.toggle("live", waiting.length > 0);
     const h = new Date().getHours();
-    $("hello").textContent = h < 12 ? "Good morning." : h < 18 ? "Good afternoon." : "Good evening.";
+    const first = myProfile?.name.split(" ")[0];
+    $("hello").textContent = (h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening") + (first ? `, ${first}.` : ".");
     // the line under the greeting only shows when something is waiting
     $("helloSub").textContent = waiting.length ? `${waiting.length} payment${waiting.length > 1 ? "s" : ""} waiting for your yes.` : "";
     $("helloSub").hidden = !waiting.length;
@@ -1467,7 +1606,7 @@
     const left = timeLeft(p), canAccept = !p.blocked && left;
     $("front").innerHTML = `
       <div class="ftop">
-        <span><b>From ${short(p.sender)}</b><small>${p.blocked ? "Blocked after reports. You can only send it back." : (left ? `${left} to decide` : "The 7 days are over")}</small></span>
+        <span><b>From ${who(p.sender)}</b><small>${p.blocked ? "Blocked after reports. You can only send it back." : (left ? `${left} to decide` : "The 7 days are over")}</small></span>
         <span class="famt">+${rm(p.amount)}</span>
       </div>
       <div class="fbtns ${canAccept ? "" : "one"}">
@@ -1488,7 +1627,7 @@
     const cls = voided || stopped ? "void" : p.incoming ? "" : "out";
     return `
       <button class="lrow" data-open="${p.id}">
-        <span><b>${p.incoming ? `From ${short(p.sender)}` : `To ${short(p.recipient)}`}</b><small>${subtitle(p)}</small></span>
+        <span><b>${p.incoming ? `From ${who(p.sender)}` : `To ${who(p.recipient)}`}</b><small>${subtitle(p)}</small></span>
         <span class="num ${cls}">${p.incoming ? "+" : "−"}${rm(p.amount)}</span>
       </button>`;
   }
@@ -1533,7 +1672,7 @@
       { t: "Not accepted in time", s: p.incoming ? "Returned to the sender" : "Returned to you" },
     ][p.status];
     const steps = [
-      { t: "Sent", s: p.incoming ? `${short(p.sender)} sent ${usdcText(p.amount)}` : `You sent ${usdcText(p.amount)}` },
+      { t: "Sent", s: p.incoming ? `${who(p.sender)} sent ${usdcText(p.amount)}` : `You sent ${usdcText(p.amount)}` },
       { t: "Held by Kiyu", s: "Nobody can spend it while it waits" },
       last,
     ];
@@ -1549,7 +1688,7 @@
     $("dTitle").textContent = p.incoming ? "Incoming" : "Sent";
     $("detail").innerHTML = `
       <p class="big-amt ${voided ? "void" : ""}">${p.incoming ? "+" : "−"}${rm(p.amount)}</p>
-      <p class="big-sub">${usdcText(p.amount)}, ${p.incoming ? `from ${short(p.sender)}` : `to ${short(p.recipient)}`}</p>
+      <p class="big-sub">${usdcText(p.amount)}, ${p.incoming ? `from ${who(p.sender)}` : `to ${who(p.recipient)}`}</p>
       ${p.blocked && p.status === 0 && p.incoming ? `<div class="banner">Kiyu stopped this payment because the sender was blocked after reports. It will never reach your wallet. You don't need to do anything.</div>` : ""}
       <ol class="track">
         ${steps.map((s) => `<li class="${s.now ? "now" : ""}"><span class="pip">${s.now ? "" : "✓"}</span><div><b>${s.t}</b><span>${s.s}</span></div></li>`).join("")}

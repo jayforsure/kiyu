@@ -13,7 +13,7 @@ try { process.loadEnvFile(); } catch { /* no .env file (e.g. on Railway): fine *
 
 const LOCAL = process.env.CHAIN === "local";
 const NET = LOCAL
-  ? { chain: anvil, rpc: "http://127.0.0.1:8545", kiyu: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512" }
+  ? { chain: anvil,   rpc: "http://127.0.0.1:8545",                       kiyu: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512" }
   : { chain: sepolia, rpc: "https://ethereum-sepolia-rpc.publicnode.com", kiyu: "0x6A65B7D654268d8A24803155411ebcE8b4bBf840" };
 // Several free RPC providers: if one fails or is behind, the next one answers.
 // (Later, a free key from Alchemy or Infura is more reliable: put it first via RPC_URL.)
@@ -50,6 +50,13 @@ await db.query(`
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
   CREATE INDEX IF NOT EXISTS subscriptions_address ON subscriptions (address);
+  CREATE TABLE IF NOT EXISTS profiles (
+    address    TEXT PRIMARY KEY,               -- the Kiyu account (lowercase)
+    username   TEXT NOT NULL UNIQUE,           -- "jay" (shown as @jay), lowercase, unique
+    name       TEXT NOT NULL,                  -- "Jay Lee"
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
   CREATE TABLE IF NOT EXISTS watcher (
     name       TEXT PRIMARY KEY,               -- which chain + contract
     last_block BIGINT NOT NULL                 -- last block we finished, so a restart doesn't miss or repeat alerts
@@ -67,13 +74,29 @@ const client = createPublicClient({
 const deviceId = (endpoint) => createHash("sha256").update(endpoint).digest("hex").slice(0, 16);
 const alertsMessage = (address, endpoint, signedAt) =>
   `Turn on Kiyu payment alerts for this device.\n\nAccount: ${address}\nDevice: ${deviceId(endpoint)}\nTime: ${signedAt}`;
-async function provesOwner(address, endpoint, signedAt, signature) {
+async function signedBy(address, message, signedAt, signature) {
   const t = Date.parse(signedAt);
   if (!t || Math.abs(Date.now() - t) > 10 * 60 * 1000) return false;          // older than 10 minutes: could be a replay
   if (typeof signature !== "string" || !/^0x[0-9a-fA-F]+$/.test(signature)) return false;
   // works for normal wallets and smart-contract wallets (it asks the chain when needed)
-  return client.verifyMessage({ address, message: alertsMessage(address, endpoint, signedAt), signature }).catch(() => false);
+  return client.verifyMessage({ address, message, signature }).catch(() => false);
 }
+const provesOwner = (address, endpoint, signedAt, signature) => signedBy(address, alertsMessage(address, endpoint, signedAt), signedAt, signature);
+
+// ---------- 3b. Kiyu IDs: @username + name, so people pay "@ali" instead of "0x7099…" ----------
+const RESERVED = new Set(["kiyu", "admin", "support", "help", "official", "team", "root", "system", "security", "staff", "wallet", "pay", "payments", "bank"]);
+// 3-20 characters: lowercase letters, numbers and _ ; starts with a letter
+function usernameProblem(u) {
+  if (typeof u !== "string" || !/^[a-z][a-z0-9_]{2,19}$/.test(u)) return "Use 3-20 letters, numbers or _, starting with a letter";
+  if (RESERVED.has(u)) return "That username is reserved";
+  return null;
+}
+// names are shown to other people, so only allow plain text: letters (any language), numbers, spaces and . ' -
+const cleanName = (n) => (typeof n === "string" ? n.normalize("NFC").replace(/\s+/g, " ").trim() : "");
+const nameOk = (n) => n.length >= 1 && n.length <= 40 && /^[\p{L}\p{M}\p{N} .'-]+$/u.test(n);
+const profileMessage = (address, username, name, signedAt) =>
+  `Set my Kiyu ID.\n\nAccount: ${address}\nUsername: @${username}\nName: ${name}\nTime: ${signedAt}`;
+const publicProfile = (r) => r && { address: r.address, username: r.username, name: r.name };
 
 // ---------- 4. Sending a notification ----------
 async function notify(address, alert) {
@@ -119,10 +142,56 @@ const isText = (v) => typeof v === "string" && v.length > 0 && v.length < 1000;
 http.createServer(async (req, res) => {
   try {
     if (req.method === "OPTIONS") return reply(req, res, 204);                         // browser asking "may I call you?"
-    if (req.method === "GET" && req.url === "/health") return reply(req, res, 200, { ok: true });
-    if (req.method === "GET" && req.url === "/vapid-key") return reply(req, res, 200, { key: process.env.VAPID_PUBLIC_KEY });
+    const url = new URL(req.url, "http://x");
+    const parts = url.pathname.split("/").filter(Boolean);                             // "/profile/u/jay" -> ["profile","u","jay"]
 
-    if (req.method === "POST" && req.url === "/subscribe") {
+    // ---- Kiyu IDs ----
+    if (req.method === "GET" && parts[0] === "username-available" && parts.length === 2) {
+      const u = decodeURIComponent(parts[1]).toLowerCase();
+      const problem = usernameProblem(u);
+      if (problem) return reply(req, res, 200, { available: false, reason: problem });
+      const { rows } = await db.query("SELECT address FROM profiles WHERE username = $1", [u]);
+      const mine = url.searchParams.get("address")?.toLowerCase();                       // your own current username counts as available
+      return reply(req, res, 200, rows.length && rows[0].address !== mine ? { available: false, reason: "That username is taken" } : { available: true });
+    }
+    if (req.method === "GET" && parts[0] === "profile" && parts.length === 3) {          // /profile/u/jay  or  /profile/a/0x…
+      const key = decodeURIComponent(parts[2]).toLowerCase();
+      const col = parts[1] === "u" ? "username" : parts[1] === "a" ? "address" : null;
+      if (!col) return reply(req, res, 404, { error: "not found" });
+      const { rows } = await db.query(`SELECT address, username, name FROM profiles WHERE ${col} = $1`, [key]);
+      return rows.length ? reply(req, res, 200, publicProfile(rows[0])) : reply(req, res, 404, { error: "no such Kiyu ID" });
+    }
+    if (req.method === "POST" && url.pathname === "/profiles") {                         // names for many addresses at once
+      const { addresses } = await readJson(req);
+      if (!Array.isArray(addresses) || addresses.length > 100 || !addresses.every((a) => isAddress(a ?? "")))
+        return reply(req, res, 400, { error: "bad addresses" });
+      const { rows } = await db.query("SELECT address, username, name FROM profiles WHERE address = ANY($1)", [addresses.map((a) => a.toLowerCase())]);
+      return reply(req, res, 200, { profiles: rows.map(publicProfile) });
+    }
+    if (req.method === "POST" && url.pathname === "/profile") {                          // create or change your own Kiyu ID
+      const { address, username: rawU, name: rawN, signedAt, signature } = await readJson(req);
+      if (!isAddress(address ?? "")) return reply(req, res, 400, { error: "bad address" });
+      const username = typeof rawU === "string" ? rawU.trim().toLowerCase() : "", name = cleanName(rawN);
+      const problem = usernameProblem(username);
+      if (problem) return reply(req, res, 400, { error: problem });
+      if (!nameOk(name)) return reply(req, res, 400, { error: "Use 1-40 letters for your name" });
+      if (!(await signedBy(address, profileMessage(address, username, rawN, signedAt), signedAt, signature)))
+        return reply(req, res, 401, { error: "signature doesn't prove you own this address" });
+      try {
+        await db.query(
+          `INSERT INTO profiles (address, username, name) VALUES ($1, $2, $3)
+           ON CONFLICT (address) DO UPDATE SET username = $2, name = $3, updated_at = now()`,
+          [address.toLowerCase(), username, name]);
+      } catch (e) {
+        if (e.code === "23505") return reply(req, res, 409, { error: "That username is taken" });   // unique rule: someone else has it
+        throw e;
+      }
+      return reply(req, res, 200, { address: address.toLowerCase(), username, name });
+    }
+    if (req.method === "GET" && url.pathname === "/health") return reply(req, res, 200, { ok: true });
+    if (req.method === "GET" && url.pathname === "/vapid-key") return reply(req, res, 200, { key: process.env.VAPID_PUBLIC_KEY });
+
+    if (req.method === "POST" && url.pathname === "/subscribe") {
       const { address, subscription: s, signedAt, signature } = await readJson(req);
       if (!isAddress(address ?? "")) return reply(req, res, 400, { error: "bad address" });
       if (!isText(s?.endpoint) || !s.endpoint.startsWith("https://") || !isText(s?.keys?.p256dh) || !isText(s?.keys?.auth))
@@ -136,7 +205,7 @@ http.createServer(async (req, res) => {
         [s.endpoint, address.toLowerCase(), s.keys.p256dh, s.keys.auth]);
       return reply(req, res, 200, { ok: true });
     }
-    if (req.method === "POST" && req.url === "/unsubscribe") {
+    if (req.method === "POST" && url.pathname === "/unsubscribe") {
       const { endpoint } = await readJson(req);
       if (isText(endpoint)) await db.query("DELETE FROM subscriptions WHERE endpoint = $1", [endpoint]);
       return reply(req, res, 200, { ok: true });
@@ -155,6 +224,10 @@ const abi = parseAbi([
   "function payments(uint256) view returns (address sender, address recipient, uint256 amount, uint256 deadline, uint8 status)",
 ]);
 const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+async function who(address) {                                                    // "Ali Tan" if they have a Kiyu ID, else "0x7099…79C8"
+  const { rows } = await db.query("SELECT name FROM profiles WHERE address = $1", [address.toLowerCase()]).catch(() => ({ rows: [] }));
+  return rows[0]?.name ?? short(address);
+}
 const rm = (units) => `RM ${(Number(formatUnits(units, 6)) * RM_PER_USD).toFixed(2)}`;
 
 const NAME = `${NET.chain.id}:${KIYU.toLowerCase()}`;
@@ -173,7 +246,7 @@ async function handle(log) {
   const id = log.args.id;
   if (log.eventName === "Sent") {
     const { sender, recipient, amount } = log.args;
-    const n = await notify(recipient, { title: "Money waiting for you", body: `${short(sender)} sent you ${rm(amount)}. Open Kiyu to accept or decline.`, tag: `kiyu-${id}` });
+    const n = await notify(recipient, { title: "Money waiting for you", body: `${await who(sender)} sent you ${rm(amount)}. Open Kiyu to accept or decline.`, tag: `kiyu-${id}` });
     console.log(`#${id} sent -> alert delivered to ${n} device(s) of ${short(recipient)}`);
     return;
   }
@@ -181,8 +254,8 @@ async function handle(log) {
   const [sender, recipient, amount] = await client.readContract({ address: KIYU, abi, functionName: "payments", args: [id] });
   const accepted = log.eventName === "Accepted";
   const n = await notify(sender, accepted
-    ? { title: "Payment accepted", body: `${short(recipient)} accepted your ${rm(amount)}.`, tag: `kiyu-${id}` }
-    : { title: "Payment declined", body: `${short(recipient)} declined your ${rm(amount)}. It's back in your balance.`, tag: `kiyu-${id}` });
+    ? { title: "Payment accepted", body: `${await who(recipient)} accepted your ${rm(amount)}.`, tag: `kiyu-${id}` }
+    : { title: "Payment declined", body: `${await who(recipient)} declined your ${rm(amount)}. It's back in your balance.`, tag: `kiyu-${id}` });
   console.log(`#${id} ${accepted ? "accepted" : "declined"} -> alert delivered to ${n} device(s) of ${short(sender)}`);
 }
 
