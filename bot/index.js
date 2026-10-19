@@ -12,7 +12,7 @@ try { process.loadEnvFile(); } catch { /* no .env file (e.g. on Railway): fine *
 
 const LOCAL = process.env.CHAIN === "local";
 const NET = LOCAL
-  ? { chain: anvil,   rpc: "http://127.0.0.1:8545",                       kiyu: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512" }
+  ? { chain: anvil, rpc: "http://127.0.0.1:8545", kiyu: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512" }
   : { chain: sepolia, rpc: "https://ethereum-sepolia-rpc.publicnode.com", kiyu: "0x6A65B7D654268d8A24803155411ebcE8b4bBf840" };
 const RPC = process.env.RPC_URL || NET.rpc;
 const KIYU = process.env.KIYU_ADDRESS || NET.kiyu;
@@ -56,7 +56,10 @@ async function notify(address, alert) {
   let delivered = 0;
   for (const s of rows) {
     try {
-      await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify({ url: SITE, ...alert }), { TTL: 24 * 3600 });
+      await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify({ url: SITE, ...alert }), {
+        TTL: 24 * 3600,                 // if the phone is off, keep trying for a day
+        urgency: "high",                // money alerts must wake the phone; "normal" waits until you open the phone
+      });
       delivered++;
     } catch (e) {
       if (e.statusCode === 404 || e.statusCode === 410) {
