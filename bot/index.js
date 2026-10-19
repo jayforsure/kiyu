@@ -2,6 +2,7 @@
 // 1) API: phones tell us "send alerts for address 0x… to me" (saved in PostgreSQL)
 // 2) Watcher: every block, look for Kiyu events and send a phone notification to the right person
 import http from "node:http";
+import { createHash } from "node:crypto";
 import pg from "pg";
 import webpush from "web-push";
 import { createPublicClient, http as rpc, parseAbi, formatUnits, isAddress } from "viem";
@@ -12,7 +13,7 @@ try { process.loadEnvFile(); } catch { /* no .env file (e.g. on Railway): fine *
 
 const LOCAL = process.env.CHAIN === "local";
 const NET = LOCAL
-  ? { chain: anvil, rpc: "http://127.0.0.1:8545", kiyu: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512" }
+  ? { chain: anvil,   rpc: "http://127.0.0.1:8545",                       kiyu: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512" }
   : { chain: sepolia, rpc: "https://ethereum-sepolia-rpc.publicnode.com", kiyu: "0x6A65B7D654268d8A24803155411ebcE8b4bBf840" };
 const RPC = process.env.RPC_URL || NET.rpc;
 const KIYU = process.env.KIYU_ADDRESS || NET.kiyu;
@@ -50,7 +51,23 @@ await db.query(`
   );
 `);
 
-// ---------- 3. Sending a notification ----------
+// ---------- 3. Proof that you own the address ----------
+// The website asks your account to sign this exact text. Only the owner of the address can
+// produce a valid signature, so nobody can sign up for someone else's alerts.
+// The server writes the text itself; it never trusts text sent by the browser.
+const client = createPublicClient({ chain: NET.chain, transport: rpc(RPC) });
+const deviceId = (endpoint) => createHash("sha256").update(endpoint).digest("hex").slice(0, 16);
+const alertsMessage = (address, endpoint, signedAt) =>
+  `Turn on Kiyu payment alerts for this device.\n\nAccount: ${address}\nDevice: ${deviceId(endpoint)}\nTime: ${signedAt}`;
+async function provesOwner(address, endpoint, signedAt, signature) {
+  const t = Date.parse(signedAt);
+  if (!t || Math.abs(Date.now() - t) > 10 * 60 * 1000) return false;          // older than 10 minutes: could be a replay
+  if (typeof signature !== "string" || !/^0x[0-9a-fA-F]+$/.test(signature)) return false;
+  // works for normal wallets and smart-contract wallets (it asks the chain when needed)
+  return client.verifyMessage({ address, message: alertsMessage(address, endpoint, signedAt), signature }).catch(() => false);
+}
+
+// ---------- 4. Sending a notification ----------
 async function notify(address, alert) {
   const { rows } = await db.query("SELECT endpoint, p256dh, auth FROM subscriptions WHERE address = $1", [address.toLowerCase()]);
   let delivered = 0;
@@ -70,7 +87,7 @@ async function notify(address, alert) {
   return delivered;
 }
 
-// ---------- 4. The API ----------
+// ---------- 5. The API ----------
 function reply(req, res, status, body) {
   const origin = req.headers.origin;
   const headers = { "content-type": "application/json" };
@@ -98,10 +115,12 @@ http.createServer(async (req, res) => {
     if (req.method === "GET" && req.url === "/vapid-key") return reply(req, res, 200, { key: process.env.VAPID_PUBLIC_KEY });
 
     if (req.method === "POST" && req.url === "/subscribe") {
-      const { address, subscription: s } = await readJson(req);
+      const { address, subscription: s, signedAt, signature } = await readJson(req);
       if (!isAddress(address ?? "")) return reply(req, res, 400, { error: "bad address" });
       if (!isText(s?.endpoint) || !s.endpoint.startsWith("https://") || !isText(s?.keys?.p256dh) || !isText(s?.keys?.auth))
         return reply(req, res, 400, { error: "bad subscription" });
+      if (!(await provesOwner(address, s.endpoint, signedAt, signature)))
+        return reply(req, res, 401, { error: "signature doesn't prove you own this address" });
       // same phone again (e.g. switched account): update it instead of adding a duplicate
       await db.query(
         `INSERT INTO subscriptions (endpoint, address, p256dh, auth) VALUES ($1, $2, $3, $4)
@@ -120,8 +139,7 @@ http.createServer(async (req, res) => {
   }
 }).listen(PORT, () => console.log(`Alerts API on port ${PORT}`));
 
-// ---------- 5. Watch the Kiyu contract ----------
-const client = createPublicClient({ chain: NET.chain, transport: rpc(RPC) });
+// ---------- 6. Watch the Kiyu contract ----------
 const abi = parseAbi([
   "event Sent(uint256 indexed id, address indexed sender, address indexed recipient, uint256 amount)",
   "event Accepted(uint256 indexed id)",
