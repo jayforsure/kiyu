@@ -119,6 +119,18 @@ async function notify(address, alert) {
 }
 
 // ---------- 5. The API ----------
+// Limits per person (per internet address), so nobody can hammer the server
+// or check thousands of usernames: lookups 60 a minute, saving things 10 a minute.
+const LIMITS = { lookup: 60, write: 10 };
+const hits = new Map();                                          // "ip|kind" -> { count, start }
+function tooMany(req, kind) {
+  const ip = String(req.headers["x-forwarded-for"] ?? req.socket.remoteAddress ?? "?").split(",")[0].trim();   // Railway passes the real IP here
+  const key = `${ip}|${kind}`, now = Date.now();
+  const h = hits.get(key);
+  if (!h || now - h.start > 60_000) { hits.set(key, { count: 1, start: now }); return false; }
+  return ++h.count > LIMITS[kind];
+}
+setInterval(() => { const old = Date.now() - 60_000; for (const [k, h] of hits) if (h.start < old) hits.delete(k); }, 60_000).unref();   // forget old counts
 function reply(req, res, status, body) {
   const origin = req.headers.origin;
   const headers = { "content-type": "application/json" };
@@ -144,6 +156,10 @@ http.createServer(async (req, res) => {
     if (req.method === "OPTIONS") return reply(req, res, 204);                         // browser asking "may I call you?"
     const url = new URL(req.url, "http://x");
     const parts = url.pathname.split("/").filter(Boolean);                             // "/profile/u/jay" -> ["profile","u","jay"]
+    const isLookup = req.method === "GET" && ["username-available", "profile"].includes(parts[0]) || (req.method === "POST" && url.pathname === "/profiles");
+    const isWrite = req.method === "POST" && ["/profile", "/subscribe"].includes(url.pathname);
+    if ((isLookup && tooMany(req, "lookup")) || (isWrite && tooMany(req, "write")))
+      return reply(req, res, 429, { error: "Too many requests. Try again in a minute" });
 
     // ---- Kiyu IDs ----
     if (req.method === "GET" && parts[0] === "username-available" && parts.length === 2) {

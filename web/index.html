@@ -408,6 +408,9 @@
     .to-who { margin: -12px 4px 18px; min-height: 20px; font-size: 14px; color: var(--grey); }
     .to-who.ok { color: var(--white); } .to-who.bad { color: #FF9F9A; }
     .to-who b { font-weight: 600; }
+    .qr { width: 200px; height: 200px; margin: 0 auto 16px; background: #fff; border-radius: 18px; padding: 12px; display: grid; place-items: center; }
+    .qr:empty { visibility: hidden; }
+    .qr svg { width: 100%; height: 100%; display: block; }
     .me-id { text-align: center; background: var(--fill); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
     .me-id b { display: block; font-size: 15px; font-weight: 500; color: var(--grey); margin-bottom: 4px; }
     .me-id span { font-family: var(--display); font-weight: 800; font-variation-settings: "wdth" 108; font-size: 32px; letter-spacing: -.04em; overflow-wrap: anywhere; }
@@ -689,7 +692,8 @@
 <section class="sheet" id="receiveSheet" role="dialog" aria-modal="true" aria-label="Receive money">
   <div class="grabber"></div>
   <div class="sheet-top"><b>Receive</b><button class="close" data-close aria-label="Close">✕</button></div>
-  <p class="hint">Share your Kiyu ID. Money sent to you waits for you to accept.</p>
+  <p class="hint">Let them scan this, or share your Kiyu ID. Money sent to you waits for you to accept.</p>
+  <div class="qr" id="qr" aria-label="QR code to pay you"></div>
   <div class="me-id" id="meId" hidden><b id="meName"></b><span id="meUser"></span></div>
   <button class="btn white full" id="copyId" hidden>Copy @username</button>
   <div class="addr-small"><span>Wallet address</span><code id="fullAddr"></code><button class="linkish" id="copyAddr" type="button">Copy</button></div>
@@ -1270,6 +1274,21 @@
     btn.disabled = false; btn.textContent = "Save";
   };
 
+  // opened from a scanned QR (?to=jay): open Send with them filled in, right after signing in
+  let pendingTo = new URLSearchParams(location.search).get("to");
+  try { if (pendingTo) sessionStorage.setItem("kiyu.to", pendingTo); else pendingTo = sessionStorage.getItem("kiyu.to"); } catch {}   // survives a Google sign-in redirect
+  function openPendingSend() {
+    if (!pendingTo) return;
+    const to = pendingTo; pendingTo = null;
+    try { sessionStorage.removeItem("kiyu.to"); } catch {}
+    history.replaceState(null, "", location.pathname + location.search.replace(/([?&])to=[^&]*&?/, "$1").replace(/[?&]$/, ""));
+    if (to.toLowerCase() === me() || to.toLowerCase() === myProfile?.username) return;     // your own QR
+    openSheet("sendSheet");
+    $("to").value = to.startsWith("0x") ? to : `@${to}`;
+    resolveTo().then(onSendInput);
+    setTimeout(() => $("amount").focus(), 300);
+  }
+
   // after signing in either way: show the home page
   async function enterHome() {
     $("welcome").hidden = true; $("topNav").hidden = true;
@@ -1282,7 +1301,8 @@
     await refresh();
     startLive();                                              // keep the page up to date by itself
     setupAlerts().catch(() => {});                            // offer payment alerts
-    if (KIYU_API && !myProfile) setTimeout(openIdSheet, 900);   // first time: pick your Kiyu ID
+    if (pendingTo) setTimeout(openPendingSend, 600);          // came from a QR: pay them first
+    else if (KIYU_API && !myProfile) setTimeout(openIdSheet, 900);   // first time: pick your Kiyu ID
   }
   document.querySelectorAll("[data-connect]").forEach((b) => {
     b.onclick = connect;
@@ -1315,7 +1335,22 @@
 
   $("acct").onclick = () => openReceive();
   $("openReceive").onclick = () => openReceive();
+  // the link inside the QR: opens Kiyu with Send ready to pay you
+  function payLink() {
+    const u = new URL(location.origin + location.pathname);
+    if (NET.chain.id !== sepolia.id) u.searchParams.set("local", "");          // keep test mode in local testing
+    u.searchParams.set("to", myProfile ? myProfile.username : account);
+    return u.toString().replace("local=&", "local&");
+  }
+  let qrLib = null;
+  async function drawQr() {
+    try {
+      qrLib ??= (await import("https://esm.sh/qrcode@1.5.4")).default;      // only loaded when you open Receive
+      $("qr").innerHTML = await qrLib.toString(payLink(), { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } });
+    } catch { $("qr").innerHTML = ""; }                                      // no QR: the @username still works
+  }
   function openReceive() {
+    $("qr").innerHTML = ""; drawQr();
     $("fullAddr").textContent = account;
     $("meId").hidden = $("copyId").hidden = !myProfile;
     if (myProfile) { $("meName").textContent = myProfile.name; $("meUser").textContent = `@${myProfile.username}`; }
@@ -1383,6 +1418,7 @@
       const r = await fetch(`${KIYU_API}/profile/u/${encodeURIComponent(u)}`);
       if ($("to").value.trim().replace(/^@/, "").toLowerCase() !== u) return;    // you kept typing: ignore this old answer
       if (r.status === 404) { out.className = "to-who bad"; out.textContent = `No one on Kiyu is @${u}`; return; }
+      if (r.status === 429) { out.className = "to-who bad"; out.textContent = "Too many lookups. Wait a minute"; return; }
       const p = await r.json();
       names.set(p.address, { name: p.name, username: p.username });
       toAddress = p.address;
