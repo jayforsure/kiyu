@@ -1905,6 +1905,79 @@
       word-break: break-all;
     }
 
+    /* sign-in buttons */
+    .socials {
+      display: grid;
+      gap: 10px;
+    }
+
+    .social {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      height: 52px;
+      border-radius: 999px;
+      border: 0;
+      cursor: pointer;
+      background: var(--fill);
+      color: var(--white);
+      font-size: 16px;
+      font-weight: 600;
+      transition: transform .15s var(--ease), background .2s var(--ease);
+    }
+
+    .social.white {
+      background: var(--white);
+      color: var(--black);
+    }
+
+    .social:hover {
+      background: #3A3A3C;
+    }
+
+    .social.white:hover {
+      background: #E8E8ED;
+    }
+
+    .social:active {
+      transform: scale(.98);
+    }
+
+    .social:disabled {
+      opacity: .5;
+      cursor: default;
+    }
+
+    .social svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .social-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .or {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--grey);
+      font-size: 13px;
+      margin: 12px 0 14px;
+    }
+
+    .or::before,
+    .or::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--sep);
+    }
+
     .linkish {
       display: block;
       margin: 18px auto 0;
@@ -2375,14 +2448,41 @@
   <section class="sheet" id="signSheet" role="dialog" aria-modal="true" aria-label="Sign in">
     <div class="grabber"></div>
     <div class="sheet-top"><b>Sign in to Kiyu</b><button class="close" data-close aria-label="Close">✕</button></div>
+    <!-- one tap with an account you already have -->
+    <div class="socials" id="socials">
+      <button class="social white" data-social="google" type="button"><svg viewBox="0 0 48 48" aria-hidden="true">
+          <path fill="#EA4335"
+            d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+          <path fill="#4285F4"
+            d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+          <path fill="#FBBC05"
+            d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+          <path fill="#34A853"
+            d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+        </svg>Continue with Google</button>
+      <button class="social" data-social="apple" type="button"><svg viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#fff"
+            d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
+        </svg>Continue with Apple</button>
+      <div class="social-row">
+        <button class="social" data-social="facebook" type="button"><svg viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#0866FF"
+              d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z" />
+          </svg>Facebook</button>
+        <button class="social" data-social="github" type="button"><svg viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#fff"
+              d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+          </svg>GitHub</button>
+      </div>
+      <div class="or"><span>or use email</span></div>
+    </div>
     <form id="emailForm" novalidate>
-      <p class="hint">We'll email you a 6-digit code. No wallet app needed.</p>
       <div class="to-field"><label for="email">Email</label><input id="email" type="email" placeholder="you@example.com"
           autocomplete="email" inputmode="email"></div>
-      <button class="btn white full" id="emailBtn" type="submit">Send code</button>
+      <button class="btn full" id="emailBtn" type="submit">Send code</button>
     </form>
     <form id="codeForm" novalidate hidden>
-      <p class="hint">Enter the code we sent to <b id="sentTo"></b></p>
+      <p class="hint">Enter the 6-digit code we sent to <b id="sentTo"></b></p>
       <div class="to-field"><label for="code">Code</label><input id="code" placeholder="123456" inputmode="numeric"
           autocomplete="one-time-code" maxlength="6"></div>
       <button class="btn white full" id="codeBtn" type="submit">Sign in</button>
@@ -2663,8 +2763,9 @@
     // the Connect buttons: email sign-in if it's set up, otherwise MetaMask
     function connect() {
       if (!EMAIL_LOGIN) return connectMetaMask();
-      $("emailForm").hidden = false; $("codeForm").hidden = true;
-      openSheet("signSheet"); setTimeout(() => $("email").focus(), 300);
+      $("emailForm").hidden = false; $("codeForm").hidden = true; $("socials").hidden = false;
+      openSheet("signSheet");
+      loadThirdweb().catch(() => { });                            // start loading now, so the Google/Apple window opens right away when tapped
     }
 
     async function connectMetaMask() {
@@ -2691,10 +2792,17 @@
     let tw = null;
     async function loadThirdweb() {
       if (tw) return tw;
-      const [core, inApp, chains] = await Promise.all([import(THIRDWEB), import(`${THIRDWEB}/wallets/in-app`), import(`${THIRDWEB}/chains`)]);
+      const [core, inApp, wallets, chains] = await Promise.all([
+        import(THIRDWEB), import(`${THIRDWEB}/wallets/in-app`), import(`${THIRDWEB}/wallets`), import(`${THIRDWEB}/chains`)]);
       const client = core.createThirdwebClient({ clientId: THIRDWEB_CLIENT_ID });
-      const wallet = inApp.inAppWallet({ executionMode: { mode: "EIP7702", sponsorGas: true } });
-      return (tw = { core, inApp, client, wallet, chain: chains.sepolia });
+      // Google/Apple/...: on a phone or in the installed app, popups get blocked, so we go to the
+      // sign-in page and come back ("redirect"). On a computer a small popup window is nicer.
+      const phone = /Android|iPhone|iPad/i.test(navigator.userAgent) || matchMedia("(display-mode: standalone)").matches;
+      const wallet = inApp.inAppWallet({
+        auth: { mode: phone ? "redirect" : "popup" },
+        executionMode: { mode: "EIP7702", sponsorGas: true },    // Kiyu pays the network fee
+      });
+      return (tw = { core, inApp, wallets, client, wallet, chain: chains.sepolia });
     }
     function useEmailAccount(twAccount) {
       account = twAccount.address;
@@ -2717,7 +2825,7 @@
         await t.inApp.preAuthenticate({ client: t.client, strategy: "email", email });
         pendingEmail = email;
         $("sentTo").textContent = email;
-        $("emailForm").hidden = true; $("codeForm").hidden = false;
+        $("emailForm").hidden = true; $("socials").hidden = true; $("codeForm").hidden = false;
         setTimeout(() => $("code").focus(), 50);
       } catch (e) { toast("Couldn't send the code. Try again"); console.error(e); }
       btn.disabled = false; btn.textContent = "Send code";
@@ -2731,14 +2839,33 @@
         const t = await loadThirdweb();
         const twAccount = await t.wallet.connect({ client: t.client, chain: t.chain, strategy: "email", email: pendingEmail, verificationCode: code });
         useEmailAccount(twAccount);
-        try { localStorage.setItem("kiyu.login", "email"); } catch { }
+        try { localStorage.setItem("kiyu.login", "inapp"); } catch { }
         $("code").value = "";
         closeSheets();
         await enterHome();
       } catch (e) { toast("That code didn't work. Check it and try again"); console.error(e); }
       btn.disabled = false; btn.textContent = "Sign in";
     };
-    $("otherEmail").onclick = () => { $("codeForm").hidden = true; $("emailForm").hidden = false; $("email").focus(); };
+    $("otherEmail").onclick = () => { $("codeForm").hidden = true; $("emailForm").hidden = false; $("socials").hidden = false; $("email").focus(); };
+    // Google / Apple / Facebook / GitHub
+    const PROVIDER = { google: "Google", apple: "Apple", facebook: "Facebook", github: "GitHub" };
+    document.querySelectorAll("[data-social]").forEach((b) => (b.onclick = async () => {
+      const strategy = b.dataset.social;
+      document.querySelectorAll("[data-social]").forEach((x) => (x.disabled = true));
+      try {
+        const t = await loadThirdweb();
+        try { localStorage.setItem("kiyu.login", "inapp"); } catch { }   // remember, in case we leave the page (redirect)
+        const twAccount = await t.wallet.connect({ client: t.client, chain: t.chain, strategy });
+        useEmailAccount(twAccount);                                // popup: we're back already
+        closeSheets();
+        await enterHome();
+      } catch (e) {
+        try { localStorage.removeItem("kiyu.login"); } catch { }
+        toast(/closed|cancel/i.test(e?.message || "") ? "Sign-in cancelled" : `Couldn't sign in with ${PROVIDER[strategy]}. Try again`);
+        console.error(e);
+      }
+      document.querySelectorAll("[data-social]").forEach((x) => (x.disabled = false));
+    }));
     $("useWallet").onclick = connectMetaMask;
     $("signOut").onclick = async () => {
       try { localStorage.removeItem("kiyu.login"); } catch { }
@@ -2748,11 +2875,15 @@
     // signed in with email before? come straight back in, like any app
     (async () => {
       let saved = null; try { saved = localStorage.getItem("kiyu.login"); } catch { }
-      if (!EMAIL_LOGIN || saved !== "email") return;
+      const back = /[?&#]authResult=|[?&#]authCookie=/.test(location.href);   // just came back from Google/Apple sign-in
+      if (!EMAIL_LOGIN || !(back || saved === "inapp" || saved === "email")) return;
       try {
         const t = await loadThirdweb();
-        const twAccount = await t.wallet.autoConnect({ client: t.client, chain: t.chain });
+        // 1) finishes a Google/Apple redirect sign-in, 2) otherwise restores your last session
+        const ok = await t.wallets.autoConnect({ client: t.client, wallets: [t.wallet], chain: t.chain }).catch(() => false);
+        const twAccount = (ok && t.wallet.getAccount()) || await t.wallet.autoConnect({ client: t.client, chain: t.chain });
         useEmailAccount(twAccount);
+        try { localStorage.setItem("kiyu.login", "inapp"); } catch { }
         await enterHome();
       } catch { try { localStorage.removeItem("kiyu.login"); } catch { } }   // session expired: sign in again
     })();
