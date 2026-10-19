@@ -2576,10 +2576,10 @@
           const r = card.getBoundingClientRect();
           if (r.bottom < 0 || r.top > innerHeight || !r.width) continue;          // off screen: skip
           const sy = clamp(((r.top + r.height / 2) / innerHeight - .5) * 2);    // -1 at the top, 1 at the bottom
-          card.style.setProperty("--rx", `${(sy * 5 - gy * 10).toFixed(2)}deg`);
-          card.style.setProperty("--ry", `${(gx * 12).toFixed(2)}deg`);
-          card.style.setProperty("--mx", `${(50 + gx * 45).toFixed(1)}%`);
-          card.style.setProperty("--my", `${(35 + sy * 25 + gy * 30).toFixed(1)}%`);
+          card.style.setProperty("--rx", `${(sy * 9 - gy * 16).toFixed(2)}deg`);
+          card.style.setProperty("--ry", `${(gx * 20).toFixed(2)}deg`);
+          card.style.setProperty("--mx", `${(50 + gx * 65).toFixed(1)}%`);              // light can slide right off the edge
+          card.style.setProperty("--my", `${(35 + sy * 35 + gy * 45).toFixed(1)}%`);
         }
       }
       const later = () => { if (!queued) { queued = true; requestAnimationFrame(draw); } };
@@ -2589,8 +2589,8 @@
         if (e.beta == null || e.gamma == null) return;
         if (!base) base = { b: e.beta, g: e.gamma };
         // the "flat" position slowly follows how you hold the phone, so it re-centres by itself
-        base.b += (e.beta - base.b) * .02; base.g += (e.gamma - base.g) * .02;
-        gx = clamp((e.gamma - base.g) / 18); gy = clamp((e.beta - base.b) / 18);
+        base.b += (e.beta - base.b) * .004; base.g += (e.gamma - base.g) * .004;   // takes a few seconds, so a tilt stays tilted
+        gx = clamp((e.gamma - base.g) / 12); gy = clamp((e.beta - base.b) / 12);     // a small tilt (12°) is already a full lean
         later();
       }
       // iPhone asks permission first (only allowed after a tap), so we ask when you tap the card.
