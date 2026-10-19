@@ -378,11 +378,6 @@
       transition: transform .6s var(--ease);
     }
 
-    .card.motion {
-      transition: transform .25s ease-out;
-    }
-
-    /* phones: follow the phone's movement quickly */
     .card::before {
       content: "";
       position: absolute;
@@ -2560,50 +2555,6 @@
       });
     });
 
-    // ---------- A5b. Phones: no mouse, so the card follows the phone instead ----------
-    // 1) Tilt the phone: the card leans and the light slides across it (gyroscope).
-    // 2) Scroll: the card leans a little as it moves up or down the screen. Works on every phone.
-    if (matchMedia("(hover: none)").matches && !still) {
-      const cards = [...document.querySelectorAll("[data-tilt]")];
-      cards.forEach((c) => c.classList.add("motion"));
-      const clamp = (v) => Math.max(-1, Math.min(1, v));
-      let gx = 0, gy = 0;                 // phone tilt, -1..1 (left/right, towards/away from you)
-      let base = null;                    // how you were holding the phone at the start = "flat"
-      let queued = false;
-      function draw() {
-        queued = false;
-        for (const card of cards) {
-          const r = card.getBoundingClientRect();
-          if (r.bottom < 0 || r.top > innerHeight || !r.width) continue;          // off screen: skip
-          const sy = clamp(((r.top + r.height / 2) / innerHeight - .5) * 2);    // -1 at the top, 1 at the bottom
-          card.style.setProperty("--rx", `${(sy * 9 - gy * 16).toFixed(2)}deg`);
-          card.style.setProperty("--ry", `${(gx * 20).toFixed(2)}deg`);
-          card.style.setProperty("--mx", `${(50 + gx * 65).toFixed(1)}%`);              // light can slide right off the edge
-          card.style.setProperty("--my", `${(35 + sy * 35 + gy * 45).toFixed(1)}%`);
-        }
-      }
-      const later = () => { if (!queued) { queued = true; requestAnimationFrame(draw); } };
-      addEventListener("scroll", later, { passive: true });
-      addEventListener("resize", later);
-      function onTilt(e) {
-        if (e.beta == null || e.gamma == null) return;
-        if (!base) base = { b: e.beta, g: e.gamma };
-        // the "flat" position slowly follows how you hold the phone, so it re-centres by itself
-        base.b += (e.beta - base.b) * .004; base.g += (e.gamma - base.g) * .004;   // takes a few seconds, so a tilt stays tilted
-        gx = clamp((e.gamma - base.g) / 12); gy = clamp((e.beta - base.b) / 12);     // a small tilt (12°) is already a full lean
-        later();
-      }
-      // iPhone asks permission first (only allowed after a tap), so we ask when you tap the card.
-      // Android doesn't ask, so it just works.
-      if (typeof DeviceOrientationEvent?.requestPermission === "function") {
-        const ask = () => DeviceOrientationEvent.requestPermission()
-          .then((r) => { if (r === "granted") addEventListener("deviceorientation", onTilt); }).catch(() => { });
-        cards.forEach((c) => c.addEventListener("click", ask, { once: true }));
-      } else {
-        addEventListener("deviceorientation", onTilt);
-      }
-      draw();
-    }
 
     // ---------- A6. The demo: fake payments you can accept or decline ----------
     const demo = {
