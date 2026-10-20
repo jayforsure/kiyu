@@ -13,18 +13,12 @@ try { process.loadEnvFile(); } catch { /* no .env file (e.g. on Railway): fine *
 
 // CHAIN=local -> your Anvil, CHAIN=sepolia -> the old Ethereum Sepolia contract, nothing -> Base Sepolia
 const NETS = {
-  base: {
-    chain: baseSepolia, kiyu: "0x2aeBe753466B296065BB67fC4c767c22075C9C02", every: 2000,
-    rpcs: ["https://sepolia.base.org", "https://base-sepolia-rpc.publicnode.com", "https://base-sepolia.drpc.org"]
-  },
-  sepolia: {
-    chain: sepolia, kiyu: "0x6A65B7D654268d8A24803155411ebcE8b4bBf840", every: 12000,
-    rpcs: ["https://ethereum-sepolia-rpc.publicnode.com", "https://sepolia.drpc.org", "https://1rpc.io/sepolia"]
-  },
-  local: {
-    chain: anvil, kiyu: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512", every: 2000,
-    rpcs: ["http://127.0.0.1:8545"]
-  },
+  base:    { chain: baseSepolia, kiyu: "0x2aeBe753466B296065BB67fC4c767c22075C9C02", every: 2000,
+             rpcs: ["https://sepolia.base.org", "https://base-sepolia-rpc.publicnode.com", "https://base-sepolia.drpc.org"] },
+  sepolia: { chain: sepolia, kiyu: "0x6A65B7D654268d8A24803155411ebcE8b4bBf840",   every: 12000,
+             rpcs: ["https://ethereum-sepolia-rpc.publicnode.com", "https://sepolia.drpc.org", "https://1rpc.io/sepolia"] },
+  local:   { chain: anvil, kiyu: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",     every: 2000,
+             rpcs: ["http://127.0.0.1:8545"] },
 };
 const LOCAL = process.env.CHAIN === "local";
 const NET = NETS[process.env.CHAIN] ?? NETS.base;
@@ -70,6 +64,10 @@ await db.query(`
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
+  CREATE TABLE IF NOT EXISTS reminders (
+    payment    TEXT PRIMARY KEY,               -- chain + contract + payment id
+    last_at    TIMESTAMPTZ NOT NULL            -- when the sender last reminded, so it's at most once a day
+  );
   CREATE TABLE IF NOT EXISTS watcher (
     name       TEXT PRIMARY KEY,               -- which chain + contract
     last_block BIGINT NOT NULL                 -- last block we finished, so a restart doesn't miss or repeat alerts
@@ -109,7 +107,25 @@ const cleanName = (n) => (typeof n === "string" ? n.normalize("NFC").replace(/\s
 const nameOk = (n) => n.length >= 1 && n.length <= 40 && /^[\p{L}\p{M}\p{N} .'-]+$/u.test(n);
 const profileMessage = (address, username, name, signedAt) =>
   `Set my Kiyu ID.\n\nAccount: ${address}\nUsername: @${username}\nName: ${name}\nTime: ${signedAt}`;
+// "Remind" button: the sender proves it's them, then we nudge the recipient's phone
+const remindMessage = (address, id, signedAt) =>
+  `Remind them about my Kiyu payment.\n\nAccount: ${address}\nPayment: #${id}\nTime: ${signedAt}`;
 const publicProfile = (r) => r && { address: r.address, username: r.username, name: r.name };
+
+// ---------- 3c. The Kiyu contract (used by the API and the watcher) ----------
+const abi = parseAbi([
+  "event Sent(uint256 indexed id, address indexed sender, address indexed recipient, uint256 amount)",
+  "event Accepted(uint256 indexed id)",
+  "event Rejected(uint256 indexed id)",
+  "function payments(uint256) view returns (address sender, address recipient, uint256 amount, uint256 deadline, uint8 status)",
+]);
+const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+async function who(address) {                                                    // "Ali Tan" if they have a Kiyu ID, else "0x7099…79C8"
+  const { rows } = await db.query("SELECT name FROM profiles WHERE address = $1", [address.toLowerCase()]).catch(() => ({ rows: [] }));
+  return rows[0]?.name ?? short(address);
+}
+const rm = (units) => `RM ${(Number(formatUnits(units, 6)) * RM_PER_USD).toFixed(2)}`;
+const NAME = `${NET.chain.id}:${KIYU.toLowerCase()}`;
 
 // ---------- 4. Sending a notification ----------
 async function notify(address, alert) {
@@ -170,7 +186,7 @@ http.createServer(async (req, res) => {
     const url = new URL(req.url, "http://x");
     const parts = url.pathname.split("/").filter(Boolean);                             // "/profile/u/jay" -> ["profile","u","jay"]
     const isLookup = req.method === "GET" && ["username-available", "profile"].includes(parts[0]) || (req.method === "POST" && url.pathname === "/profiles");
-    const isWrite = req.method === "POST" && ["/profile", "/subscribe"].includes(url.pathname);
+    const isWrite = req.method === "POST" && ["/profile", "/subscribe", "/remind"].includes(url.pathname);
     if ((isLookup && tooMany(req, "lookup")) || (isWrite && tooMany(req, "write")))
       return reply(req, res, 429, { error: "Too many requests. Try again in a minute" });
 
@@ -234,6 +250,39 @@ http.createServer(async (req, res) => {
         [s.endpoint, address.toLowerCase(), s.keys.p256dh, s.keys.auth]);
       return reply(req, res, 200, { ok: true });
     }
+    if (req.method === "POST" && url.pathname === "/remind") {
+      const { address, id: rawId, signedAt, signature } = await readJson(req);
+      if (!isAddress(address ?? "")) return reply(req, res, 400, { error: "bad address" });
+      if (typeof rawId !== "string" || !/^\d{1,12}$/.test(rawId)) return reply(req, res, 400, { error: "bad payment" });
+      if (!(await signedBy(address, remindMessage(address, rawId, signedAt), signedAt, signature)))
+        return reply(req, res, 401, { error: "signature doesn't prove you own this address" });
+      // check the payment on the blockchain: yours, still waiting, not past its 7 days
+      const id = BigInt(rawId);
+      const [[sender, recipient, amount, deadline, status], block] = await Promise.all([
+        client.readContract({ address: KIYU, abi, functionName: "payments", args: [id] }),
+        client.getBlock(),
+      ]);
+      if (sender.toLowerCase() !== address.toLowerCase()) return reply(req, res, 403, { error: "That isn't your payment" });
+      if (status !== 0 || deadline <= block.timestamp) return reply(req, res, 409, { error: "This payment isn't waiting anymore" });
+      // at most once a day per payment (the database decides, so two taps at once can't both pass)
+      const key = `${NAME}:${rawId}`;
+      const { rows } = await db.query(
+        `INSERT INTO reminders (payment, last_at) VALUES ($1, now())
+         ON CONFLICT (payment) DO UPDATE SET last_at = now() WHERE reminders.last_at < now() - interval '24 hours'
+         RETURNING payment`, [key]);
+      if (!rows.length) {
+        const { rows: r } = await db.query("SELECT ceil(extract(epoch FROM (last_at + interval '24 hours' - now())) / 3600) AS h FROM reminders WHERE payment = $1", [key]);
+        const h = Math.max(1, Number(r[0]?.h ?? 24));
+        return reply(req, res, 429, { error: `You can remind them again in ${h} hour${h > 1 ? "s" : ""}`, hours: h });
+      }
+      const s = Number(deadline - block.timestamp), d = Math.floor(s / 86400), hl = Math.max(1, Math.floor(s / 3600));
+      const left = d > 0 ? `${d} day${d > 1 ? "s" : ""}` : `${hl} hour${hl > 1 ? "s" : ""}`;
+      const delivered = await notify(recipient, { title: "Reminder: money waiting for you",
+        body: `${await who(sender)} is waiting for your yes on ${rm(amount)}. ${left} left to accept.`, tag: `kiyu-${id}` });
+      if (!delivered) await db.query("DELETE FROM reminders WHERE payment = $1", [key]);   // they have no alerts on: don't use up today's reminder
+      console.log(`#${id} reminder -> delivered to ${delivered} device(s) of ${short(recipient)}`);
+      return reply(req, res, 200, { ok: true, delivered });
+    }
     if (req.method === "POST" && url.pathname === "/unsubscribe") {
       const { endpoint } = await readJson(req);
       if (isText(endpoint)) await db.query("DELETE FROM subscriptions WHERE endpoint = $1", [endpoint]);
@@ -246,20 +295,7 @@ http.createServer(async (req, res) => {
 }).listen(PORT, () => console.log(`Alerts API on port ${PORT}`));
 
 // ---------- 6. Watch the Kiyu contract ----------
-const abi = parseAbi([
-  "event Sent(uint256 indexed id, address indexed sender, address indexed recipient, uint256 amount)",
-  "event Accepted(uint256 indexed id)",
-  "event Rejected(uint256 indexed id)",
-  "function payments(uint256) view returns (address sender, address recipient, uint256 amount, uint256 deadline, uint8 status)",
-]);
-const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
-async function who(address) {                                                    // "Ali Tan" if they have a Kiyu ID, else "0x7099…79C8"
-  const { rows } = await db.query("SELECT name FROM profiles WHERE address = $1", [address.toLowerCase()]).catch(() => ({ rows: [] }));
-  return rows[0]?.name ?? short(address);
-}
-const rm = (units) => `RM ${(Number(formatUnits(units, 6)) * RM_PER_USD).toFixed(2)}`;
 
-const NAME = `${NET.chain.id}:${KIYU.toLowerCase()}`;
 async function saveLast(n) {
   await db.query("INSERT INTO watcher (name, last_block) VALUES ($1, $2) ON CONFLICT (name) DO UPDATE SET last_block = $2", [NAME, n.toString()]);
 }
