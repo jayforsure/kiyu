@@ -352,18 +352,90 @@
     .front .fmeta button { font-size: 13px; border: 0; background: none; color: var(--grey); padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
     .front .fmeta button:hover { color: #fff; }
 
-    /* ---------- Activity as a ledger: big numbers, grouped by day ---------- */
-    .ledger .day { color: var(--grey); font-size: 13px; margin: 26px 0 2px; }
-    .ledger .day:first-child { margin-top: 0; }
-    .lrow { width: 100%; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 16px; padding: 16px 2px; border: 0; border-bottom: 1px solid var(--sep);
-      background: none; color: #fff; text-align: left; cursor: pointer; transition: padding .25s var(--ease); }
-    .lrow:hover { padding-left: 10px; padding-right: 10px; }
-    .lrow b { font-weight: 500; display: block; } .lrow small { color: var(--grey); font-size: 13px; }
-    .lrow .num { font-family: var(--display); font-variation-settings: "wdth" 108; font-weight: 800; font-size: 26px; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
-    .lrow .num.out { color: var(--grey); }
-    .lrow .num.void { color: #48484A; text-decoration: line-through; text-decoration-thickness: 2px; }
-    .home.enter .lrow { animation: rowIn .6s var(--ease) both; }
-    .home.enter .lrow:nth-child(n+3) { animation-delay: .08s; } .home.enter .lrow:nth-child(n+5) { animation-delay: .16s; }
+
+    /* ---------- Activity: clean list on a timeline (like "How it works") ---------- */
+    .sum { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .sum div { background: var(--group); border-radius: 18px; padding: 12px 14px; }
+    .sum small { display: block; color: var(--grey); font-size: 12px; font-weight: 500; }
+    .sum b { font-family: var(--display); font-weight: 800; font-variation-settings: "wdth" 106; font-size: 22px; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+    .filters { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; scrollbar-width: none; }
+    .filters::-webkit-scrollbar { display: none; }
+    .filters button { border: 0; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; background: var(--group); color: #C7C7CC; cursor: pointer; white-space: nowrap; transition: background .25s, color .25s; }
+    .filters button[aria-pressed="true"] { background: var(--white); color: var(--black); }
+    .av { width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center; font-weight: 700; font-size: 16px; letter-spacing: -.02em; color: var(--black); background: var(--white); position: relative; }
+    .av.out { background: #3A3A3C; color: var(--white); box-shadow: 0 0 0 1px rgba(255,255,255,.14) inset; }
+    .av.anon { font-size: 13px; }
+    .av .dir { position: absolute; right: -3px; bottom: -3px; width: 18px; height: 18px; border-radius: 50%; background: var(--black); display: grid; place-items: center; font-size: 11px; color: var(--white); box-shadow: 0 0 0 2px var(--black); }
+    .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--fill); color: #C7C7CC; white-space: nowrap; line-height: 1.4; }
+    .chip i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: chipPulse 1.6s ease-in-out infinite; }
+    @keyframes chipPulse { 50% { opacity: .25; } }
+    .chip.wait { background: rgba(255,255,255,.1); color: var(--white); }
+    .chip.ok { background: var(--white); color: var(--black); }
+    .chip.no { background: transparent; color: var(--grey); box-shadow: 0 0 0 1px var(--sep) inset; }
+    .amtD { font-family: var(--display); font-weight: 800; font-variation-settings: "wdth" 104; font-size: 19px; letter-spacing: -.03em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .amtD.out { color: #C7C7CC; }
+    .amtD.void { color: var(--grey); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+    .atl { position: relative; padding-left: 34px; }
+    .atl::before, .atl .fill { content: ""; position: absolute; left: 9px; top: 10px; width: 2px; border-radius: 1px; }
+    .atl::before { bottom: 30px; background: var(--sep); }
+    .atl .fill { height: var(--fill, 0px); max-height: calc(100% - 40px); background: var(--white); transition: height .15s linear; }
+    .atl .dday { position: relative; font-size: 13px; color: var(--grey); margin: 22px 0 6px; display: flex; justify-content: space-between; transition: color .4s; }
+    .atl .dday:first-of-type { margin-top: 0; }
+    .atl .dday small { font-size: 12px; }
+    .atl .dday::before { content: ""; position: absolute; left: -28px; top: 6px; width: 8px; height: 8px; border-radius: 2px; background: var(--sep); box-shadow: 0 0 0 4px var(--black); transition: background .4s; }
+    .atl .dday.on { color: var(--white); }
+    .atl .dday.on::before { background: var(--white); }
+    .rowD { position: relative; width: calc(100% + 16px); display: flex; align-items: center; gap: 12px; margin: 0 -8px; padding: 10px 8px; border: 0; border-radius: 18px; background: none; color: var(--white); text-align: left; cursor: pointer; font-size: 16px;
+      opacity: .4; transition: opacity .6s var(--ease), background .3s, transform .2s var(--ease); }
+    .rowD.on { opacity: 1; }
+    .rowD:active { transform: scale(.985); }
+    .rowD.picked { background: var(--group); }
+    @media (hover: hover) { .rowD:hover { background: rgba(255,255,255,.04); } }
+    /* the dot sits on the line, level with the avatar */
+    .rowD::before { content: ""; position: absolute; left: -21px; top: calc(50% - 5px); width: 10px; height: 10px; border-radius: 50%;
+      background: var(--black); box-shadow: 0 0 0 1.5px var(--grey) inset, 0 0 0 4px var(--black); transition: background .4s, box-shadow .4s; }
+    .rowD.on::before { background: var(--white); box-shadow: 0 0 0 4px var(--black), 0 0 12px 4px rgba(255,255,255,.28); }
+    .rowD.on.wait::before { animation: dotPulse 1.6s ease-in-out infinite; }
+    @keyframes dotPulse { 50% { box-shadow: 0 0 0 4px var(--black), 0 0 0 7px rgba(255,255,255,.22), 0 0 16px 6px rgba(255,255,255,.18); } }
+    .rowD .mid { flex: 1; min-width: 0; }
+    .rowD .name { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rowD .sub { display: flex; gap: 8px; align-items: center; margin-top: 3px; }
+    .rowD .sub small { color: var(--grey); font-size: 13px; }
+    .home.enter .rowD.on, .home.enter .dday { animation: rowIn .6s var(--ease) both; }
+
+    /* ---------- Payment details pop-out ---------- */
+    .phead { text-align: center; padding-top: 4px; }
+    .phead .av { width: 60px; height: 60px; font-size: 22px; margin: 0 auto 10px; animation: avPop .5s .1s cubic-bezier(.3, 1.5, .5, 1) both; }
+    .phead .av.anon { font-size: 16px; }
+    .phead .av .dir { width: 22px; height: 22px; font-size: 13px; }
+    @keyframes avPop { from { transform: scale(.6); opacity: 0; } }
+    .phead .who { color: #C7C7CC; font-size: 15px; font-weight: 600; }
+    .phead .big-amt { margin: 6px 0 10px; font-size: 48px; animation: up .5s .12s var(--ease) both; }
+    @keyframes up { from { transform: translateY(8px); opacity: 0; } }
+    .jbox { margin: 20px 0 14px; padding: 16px 16px 4px; border-radius: 18px; background: rgba(255,255,255,.05); }
+    .jr { list-style: none; margin: 0; padding: 0 0 0 4px; }
+    .jr li { position: relative; padding: 0 0 14px 24px; font-size: 14px; color: var(--grey); animation: stepIn .35s var(--ease) both; }
+    .jr li::before { content: ""; position: absolute; left: 0; top: 4px; width: 11px; height: 11px; border-radius: 50%; background: var(--white); animation: pip .4s cubic-bezier(.3, 1.6, .5, 1) both; }
+    .jr li:not(:last-child)::after { content: ""; position: absolute; left: 4.5px; top: 17px; bottom: 3px; width: 2px; background: var(--sep); transform-origin: top; animation: draw .3s var(--ease) both; }
+    .jr li.todo::before { background: transparent; box-shadow: 0 0 0 2px var(--grey) inset; }
+    .jr li.todo.live::before { animation: pip .4s cubic-bezier(.3, 1.6, .5, 1) both, ring 1.6s 1s ease-in-out infinite; }
+    @keyframes ring { 50% { box-shadow: 0 0 0 2px var(--white) inset, 0 0 0 5px rgba(255,255,255,.14); } }
+    .jr li:nth-child(1) { animation-delay: .2s; } .jr li:nth-child(1)::before { animation-delay: .24s; } .jr li:nth-child(1)::after { animation-delay: .32s; }
+    .jr li:nth-child(2) { animation-delay: .36s; } .jr li:nth-child(2)::before { animation-delay: .4s; } .jr li:nth-child(2)::after { animation-delay: .48s; }
+    .jr li:nth-child(3) { animation-delay: .52s; } .jr li:nth-child(3)::before { animation-delay: .56s; }
+    @keyframes stepIn { from { opacity: 0; transform: translateX(-10px); } }
+    @keyframes pip { from { transform: scale(.4); } }
+    @keyframes draw { from { transform: scaleY(0); } }
+    .jr b { color: var(--white); font-weight: 600; display: block; font-size: 15px; }
+    .dbar { display: flex; align-items: center; gap: 10px; margin: 0 0 14px 28px; font-size: 12px; color: var(--grey); animation: up .4s .6s var(--ease) both; }
+    .dbar span { flex: 1; height: 4px; border-radius: 4px; background: rgba(255,255,255,.14); overflow: hidden; }
+    .dbar i { display: block; height: 100%; width: var(--w); border-radius: inherit; background: var(--white); animation: grow .9s .7s var(--ease) both; }
+    @keyframes grow { from { width: 0; } }
+    #detail .stack, #detail .banner { animation: up .4s .62s var(--ease) both; }
+    #detail .list { animation: up .4s .7s var(--ease) both; }
+    .sheet.drag { transition: none; }
+    #detailSheet .sheet-top { position: absolute; top: 22px; right: 22px; margin: 0; z-index: 1; }
+    @media (prefers-reduced-motion: reduce) { .phead *, .jr li, .jr li::before, .jr li::after, .dbar, .dbar i, #detail .stack, #detail .list, #detail .banner { animation: none !important; } }
 
     .group { background: var(--group); border-radius: 18px; overflow: hidden; }
     .row { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; padding: 16px 20px; border: 0; background: none; text-align: left; cursor: pointer; position: relative; transition: background .12s; }
@@ -425,8 +497,7 @@
     .addr-big { font-size: 20px; font-weight: 600; letter-spacing: -.01em; word-break: break-all; text-align: center; background: var(--fill); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
     .hint { color: var(--grey); font-size: 15px; text-align: center; margin: 0 0 20px; }
     .hint b { color: var(--white); font-weight: 600; word-break: break-all; }
-    .lrow.sending { opacity: .6; animation: rowIn .5s var(--ease) both; }
-    .lrow.sending small::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 6px; border-radius: 50%; background: currentColor; animation: blink 1s infinite; }
+    .rowD.sending { animation: rowIn .5s var(--ease) both; cursor: default; }
     @keyframes blink { 50% { opacity: .2; } }
     /* Kiyu IDs */
     .to-who { margin: -12px 4px 18px; min-height: 20px; font-size: 14px; color: var(--grey); }
@@ -687,7 +758,11 @@
 
     <div class="block">
       <div class="block-head"><h2>Activity</h2></div>
-      <div class="ledger" id="activity"></div>
+      <div class="sum" id="actSum" hidden></div>
+      <div class="filters" id="actFilters" role="group" aria-label="Show" hidden>
+        <button aria-pressed="true" data-f="all">All</button><button aria-pressed="false" data-f="wait">Waiting</button><button aria-pressed="false" data-f="out">Sent</button><button aria-pressed="false" data-f="in">Received</button>
+      </div>
+      <div class="atl" id="activity"></div>
     </div>
   </section>
 </main>
@@ -1377,7 +1452,24 @@
 
   // ---------- 4. Sheets ----------
   function openSheet(id) { $("scrim").classList.add("open"); $(id).classList.add("open"); }
-  function closeSheets() { $("scrim").classList.remove("open"); document.querySelectorAll(".sheet").forEach((s) => s.classList.remove("open")); }
+  function closeSheets() {
+    $("scrim").classList.remove("open");
+    document.querySelectorAll(".sheet").forEach((s) => { s.classList.remove("open"); s.style.transform = ""; });
+    document.querySelectorAll(".rowD.picked").forEach((r) => r.classList.remove("picked"));
+  }
+  // swipe a sheet down to close it (only when it's scrolled to the top)
+  document.querySelectorAll(".sheet").forEach((sh) => {
+    let y0 = null, dy = 0;
+    sh.addEventListener("touchstart", (e) => { if (sh.scrollTop > 0 || e.target.closest("input, textarea")) return; y0 = e.touches[0].clientY; dy = 0; }, { passive: true });
+    sh.addEventListener("touchmove", (e) => {
+      if (y0 === null) return; dy = Math.max(0, e.touches[0].clientY - y0);
+      if (dy > 6) { sh.classList.add("drag"); sh.style.transform = `translate(-50%, ${dy}px)`; }
+    }, { passive: true });
+    sh.addEventListener("touchend", () => {
+      if (y0 === null) return; y0 = null; sh.classList.remove("drag");
+      if (dy > 90) closeSheets(); else sh.style.transform = "";
+    });
+  });
   $("scrim").onclick = closeSheets;
   document.querySelectorAll("[data-close]").forEach((b) => (b.onclick = closeSheets));
   document.addEventListener("keydown", (e) => {
@@ -1713,17 +1805,7 @@
     if (p.status === 2) return p.incoming ? "Declined" : "They declined";
     return "Returned to sender";
   }
-  function rowHTML(p) {
-    const voided = p.status === 2 || p.status === 3;
-    const whoText = p.incoming ? `From ${who(p.sender)}` : `To ${who(p.recipient)}`;
-    let pill = "";
-    if (p.incoming && p.status === 0) pill = p.blocked ? `<span class="pill dim">Decline only</span>` : `<span class="pill">Review</span>`;
-    return `
-      <button class="row" data-open="${p.id}">
-        <span><span class="title">${whoText}</span><br><span class="sub">${subtitle(p)}</span></span>
-        <span class="right"><span class="amt ${voided ? "void" : ""}">${p.incoming ? "+" : "−"}${rm(p.amount)}</span>${pill ? "<br>" + pill : ""}</span>
-      </button>`;
-  }
+
   // ---------- The wallet stack ----------
   let selId = null;            // which waiting payment is picked
   const MAX_PEEK = 4;          // how many waiting cards peek out at once
@@ -1745,14 +1827,7 @@
       </button>`).join("");
     renderFront(waiting);
 
-    // activity, grouped by the day it was sent (sent = deadline - 7 days)
-    let html = "", lastDay = "";
-    for (const p of rest) {
-      const day = dayLabel(Number(p.deadline) - 7 * 86400);
-      if (day !== lastDay) { html += `<div class="day">${day}</div>`; lastDay = day; }
-      html += ledgerHTML(p);
-    }
-    $("activity").innerHTML = html || `<p class="empty" style="padding:0">No activity yet.</p>`;
+    drawActivity(rest);
 
     $("cardTag").textContent = waiting.length ? `${waiting.length} waiting` : "Protected";
     $("cardTag").classList.toggle("live", waiting.length > 0);
@@ -1807,23 +1882,82 @@
   }
   // a payment you just sent, shown at the top of Activity until the chain confirms it
   function addSendingRow(to, units) {
-    const row = `<div class="lrow sending"><span><b>To ${who(to)}</b><small>Sending…</small></span><span class="num out">−${rm(units)}</span></div>`;
+    const row = `<div class="rowD on wait sending">${avatar(to, true)}<span class="mid"><span class="name">To ${who(to)}</span>
+      <span class="sub"><span class="chip wait"><i></i>Sending…</span></span></span><span class="amtD out">−${rm(units)}</span></div>`;
     const box = $("activity");
     box.querySelector(".empty")?.remove();
-    const today = box.querySelector(".day");
-    if (today?.textContent === "Today") today.insertAdjacentHTML("afterend", row);
-    else box.insertAdjacentHTML("afterbegin", `<div class="day">Today</div>${row}`);
+    if (!box.querySelector(".fill")) box.insertAdjacentHTML("afterbegin", `<i class="fill"></i>`);
+    const today = box.querySelector(".dday");
+    if (today?.dataset.day === "Today") today.insertAdjacentHTML("afterend", row);
+    else box.querySelector(".fill").insertAdjacentHTML("afterend", `<div class="dday on" data-day="Today"><span>Today</span></div>${row}`);
+    actTimeline();
   }
-  function ledgerHTML(p) {
-    const voided = p.status === 2 || p.status === 3;
-    const stopped = p.incoming && p.status === 0 && p.blocked;   // never reached you
-    const cls = voided || stopped ? "void" : p.incoming ? "" : "out";
-    return `
-      <button class="lrow" data-open="${p.id}">
-        <span><b>${p.incoming ? `From ${who(p.sender)}` : `To ${who(p.recipient)}`}</b><small>${subtitle(p)}</small></span>
-        <span class="num ${cls}">${p.incoming ? "+" : "−"}${rm(p.amount)}</span>
-      </button>`;
+
+  // ---------- Activity: a clean list on a timeline ----------
+  let actFilter = "all", actRows = [];
+  const sentAt = (p) => Number(p.deadline) - 7 * 86400;           // a payment waits 7 days, so it was sent 7 days before its deadline
+  const initials = (a) => {
+    const n = names.get(a.toLowerCase())?.name;
+    return n ? esc(n.trim().split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase()) : null;
+  };
+  function avatar(a, out) {
+    const i = initials(a);
+    return `<span class="av ${out ? "out" : ""} ${i ? "" : "anon"}">${i ?? "0x"}<span class="dir">${out ? "↑" : "↓"}</span></span>`;
   }
+  function chip(p) {
+    const left = timeLeft(p);
+    if (p.status === 0) {
+      if (p.incoming) return p.blocked ? `<span class="chip no">Stopped by Kiyu</span>` : `<span class="chip wait"><i></i>${left ?? "Expired"}</span>`;
+      return left ? `<span class="chip wait"><i></i>Waiting · ${left.replace(/ days? left| hours? left/, (m) => m.includes("day") ? "d left" : "h left")}</span>` : `<span class="chip wait">Ready to take back</span>`;
+    }
+    if (p.status === 1) return `<span class="chip ok">${p.incoming ? "Received" : "Accepted"}</span>`;
+    if (p.status === 2) return `<span class="chip no">Declined</span>`;
+    return `<span class="chip no">Returned</span>`;
+  }
+  const clock = (t) => new Date(t * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  function drawActivity(rest = actRows) {
+    actRows = rest;
+    // this week's totals (money that actually moved, or is on its way)
+    const week = Number(now) - 7 * 86400, mine = payments.filter((p) => sentAt(p) >= week);
+    const sent = mine.filter((p) => !p.incoming && (p.status === 0 || p.status === 1)).reduce((s, p) => s + p.amount, 0n);
+    const got = mine.filter((p) => p.incoming && p.status === 1).reduce((s, p) => s + p.amount, 0n);
+    $("actSum").innerHTML = `<div><small>Sent this week</small><b>${rm(sent)}</b></div><div><small>Received this week</small><b>${rm(got)}</b></div>`;
+    $("actSum").hidden = $("actFilters").hidden = !payments.length;
+
+    const rows = rest.filter((p) => actFilter === "all" || (actFilter === "wait" ? p.status === 0 : actFilter === "in" ? p.incoming : !p.incoming));
+    let html = `<i class="fill"></i>`, lastDay = "";
+    for (const p of rows) {
+      const day = dayLabel(sentAt(p));
+      if (day !== lastDay) {
+        const n = rows.filter((x) => dayLabel(sentAt(x)) === day).length;
+        html += `<div class="dday" data-day="${day}"><span>${day}</span><small>${n} payment${n > 1 ? "s" : ""}</small></div>`; lastDay = day;
+      }
+      const voided = p.status === 2 || p.status === 3 || (p.incoming && p.status === 0 && p.blocked);
+      const other = p.incoming ? p.sender : p.recipient;
+      html += `<button class="rowD ${p.status === 0 && !voided ? "wait" : ""}" data-open="${p.id}">${avatar(other, !p.incoming)}
+        <span class="mid"><span class="name">${p.incoming ? "From" : "To"} ${who(other)}</span><span class="sub">${chip(p)}<small>${clock(sentAt(p))}</small></span></span>
+        <span class="amtD ${voided ? "void" : p.incoming ? "" : "out"}">${p.incoming ? "+" : "−"}${rm(p.amount)}</span></button>`;
+    }
+    const empty = !payments.length ? "No activity yet. Payments you send and get show up here." : "Nothing here yet.";
+    $("activity").innerHTML = rows.length ? html : `<p class="empty" style="padding:0">${empty}</p>`;
+    actTimeline();
+  }
+  document.querySelectorAll("#actFilters button").forEach((b) => b.onclick = () => {
+    actFilter = b.dataset.f;
+    document.querySelectorAll("#actFilters button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+    drawActivity();
+  });
+  // same as "How it works": the white line follows your scroll, each payment lights up when it's reached
+  function actTimeline() {
+    const box = $("activity");
+    if (!box || $("home").hidden) return;
+    const atEnd = innerHeight + scrollY >= document.documentElement.scrollHeight - 4;   // at the bottom: light everything left
+    const line = atEnd ? Infinity : innerHeight * .65;
+    box.querySelectorAll(".rowD, .dday").forEach((el) => el.classList.toggle("on", el.getBoundingClientRect().top < line));
+    box.style.setProperty("--fill", (atEnd ? box.offsetHeight : Math.max(0, line - box.getBoundingClientRect().top - 10)) + "px");
+  }
+  addEventListener("scroll", actTimeline, { passive: true }); addEventListener("resize", actTimeline);
+
 
   // pick a waiting card
   document.addEventListener("click", (e) => {
@@ -1856,19 +1990,24 @@
   function showDetail(id) {
     const p = payments.find((x) => x.id === id);
     if (!p) return;
-    const voided = p.status === 2 || p.status === 3;
-    const left = timeLeft(p);
-    const last = [
-      { t: p.incoming ? "Waiting for you" : "Waiting for them", s: left ?? "The 7 days are over", now: true },
-      { t: "Accepted", s: p.incoming ? "The money is in your wallet" : "They have the money" },
-      { t: "Declined", s: p.incoming ? "Returned to the sender" : "Returned to you" },
+    const voided = p.status === 2 || p.status === 3 || (p.incoming && p.status === 0 && p.blocked);
+    const left = timeLeft(p), other = p.incoming ? p.sender : p.recipient;
+    const handle = (a) => { const n = names.get(a.toLowerCase()); return n ? `@${esc(n.username)}` : short(a); };
+    const sentText = `${dayLabel(sentAt(p))}, ${clock(sentAt(p))}`;
+    const end = [
+      { t: p.incoming ? (p.blocked ? "Stopped by Kiyu" : "Waiting for your yes") : `Waiting for ${handle(p.recipient)}`, s: p.blocked && p.incoming ? "It will never reach your wallet" : (left ?? "The 7 days are over"), todo: true },
+      { t: p.incoming ? "You accepted" : `${handle(p.recipient)} accepted`, s: p.incoming ? "The money is in your wallet" : "They have the money" },
+      { t: p.incoming ? "You declined" : `${handle(p.recipient)} declined`, s: p.incoming ? "Returned to the sender" : "Returned to you" },
       { t: "Not accepted in time", s: p.incoming ? "Returned to the sender" : "Returned to you" },
     ][p.status];
     const steps = [
-      { t: "Sent", s: p.incoming ? `${who(p.sender)} sent ${usdcText(p.amount)}` : `You sent ${usdcText(p.amount)}` },
-      { t: "Held by Kiyu", s: "Nobody can spend it while it waits" },
-      last,
+      { t: p.incoming ? `${who(p.sender)} sent it` : "You sent it", s: sentText },
+      { t: "Held by Kiyu", s: "Checked and kept safe" },
+      end,
     ];
+    // how far into the 7 days a waiting payment is
+    const used = Math.min(7, Math.max(0, (Number(now) - sentAt(p)) / 86400));
+    const bar = p.status === 0 && !(p.incoming && p.blocked) && left ? `<div class="dbar" style="--w:${Math.max(4, Math.round(used / 7 * 100))}%"><span><i></i></span>Day ${Math.min(7, Math.floor(used) + 1)} of 7</div>` : "";
 
     let actions = "";
     if (p.incoming && p.status === 0 && !p.blocked) {
@@ -1878,21 +2017,26 @@
     if (!p.incoming && p.status === 0 && !left) actions += `<button class="btn white full" data-fn="refund" data-id="${p.id}">Take it back</button>`;
     if (p.incoming && !p.reported) actions += `<button class="btn link full" data-fn="report" data-id="${p.id}">Report sender</button>`;
 
-    $("dTitle").textContent = p.incoming ? "Incoming" : "Sent";
+    $("dTitle").textContent = "";
     $("detail").innerHTML = `
-      <p class="big-amt ${voided ? "void" : ""}">${p.incoming ? "+" : "−"}${rm(p.amount)}</p>
-      <p class="big-sub">${usdcText(p.amount)}, ${p.incoming ? `from ${who(p.sender)}` : `to ${who(p.recipient)}`}</p>
+      <div class="phead">${avatar(other, !p.incoming)}<div class="who">${p.incoming ? "From" : "To"} ${who(other)}</div>
+        <p class="big-amt ${voided ? "void" : ""}">${p.incoming ? "+" : "−"}${rm(p.amount)}</p>${chip(p)}</div>
+      <div class="jbox"><ol class="jr">
+        ${steps.map((x, i) => `<li class="${x.todo ? "todo" : ""} ${x.todo && left && !p.blocked ? "live" : ""}"><b>${x.t}</b>${x.s}</li>`).join("")}
+      </ol>${bar}</div>
       ${p.blocked && p.status === 0 && p.incoming ? `<div class="banner">Kiyu stopped this payment because the sender was blocked after reports. It will never reach your wallet. You don't need to do anything.</div>` : ""}
-      <ol class="track">
-        ${steps.map((s) => `<li class="${s.now ? "now" : ""}"><span class="pip">${s.now ? "" : "✓"}</span><div><b>${s.t}</b><span>${s.s}</span></div></li>`).join("")}
-      </ol>
       ${actions ? `<div class="stack">${actions}</div>` : ""}
       <div class="list">
+        <div><span class="k">When</span><span class="v">${sentText}</span></div>
+        <div><span class="k">${p.incoming ? "From" : "To"}</span><span class="v">${handle(other)}</span></div>
+        <div><span class="k">Amount</span><span class="v">${usdcText(p.amount)}</span></div>
         <div><span class="k">Payment</span><span class="v">#${p.id}</span></div>
-        <div><span class="k">From</span><span class="v">${p.sender}</span></div>
-        <div><span class="k">To</span><span class="v">${p.recipient}</span></div>
+        <div><span class="k">Address</span><span class="v">${other}</span></div>
         ${p.reported ? `<div><span class="k">Reported</span><span class="v">Yes</span></div>` : ""}
       </div>`;
+    $("detailSheet").scrollTop = 0;
+    document.querySelectorAll(".rowD.picked").forEach((r) => r.classList.remove("picked"));
+    document.querySelector(`.rowD[data-open="${p.id}"]`)?.classList.add("picked");
     openSheet("detailSheet");
   }
 </script>
