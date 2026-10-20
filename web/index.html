@@ -394,8 +394,7 @@
     /* the dot sits on the line, level with the avatar */
     .rowD::before { content: ""; position: absolute; left: -21px; top: calc(50% - 5px); width: 10px; height: 10px; border-radius: 50%;
       background: var(--black); box-shadow: 0 0 0 1.5px var(--grey) inset, 0 0 0 4px var(--black); transition: background .4s, box-shadow .4s; }
-    .rowD.on::before { background: var(--white); box-shadow: 0 0 0 4px var(--black); }   /* plain white dot, no glow */
-    .rowD.on.wait::before { box-shadow: 0 0 0 4px var(--black), 0 0 12px 4px rgba(255,255,255,.28); animation: dotPulse 1.6s ease-in-out infinite; }   /* only waiting payments glow */
+    .rowD.on::before { background: var(--white); box-shadow: 0 0 0 4px var(--black); }   /* plain white dot, no glow (only the dot inside the Waiting chip pulses) */
     @keyframes dotPulse { 50% { box-shadow: 0 0 0 4px var(--black), 0 0 0 7px rgba(255,255,255,.22), 0 0 16px 6px rgba(255,255,255,.18); } }
     .rowD .mid { flex: 1; min-width: 0; }
     .rowD .name { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
