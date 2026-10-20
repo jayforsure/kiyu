@@ -106,6 +106,7 @@
     .btn.link { background: none; color: var(--grey); padding: 12px; font-weight: 500; }
     .btn.link:hover { color: var(--white); }
     .btn:disabled { opacity: .35; cursor: default; transform: none; }
+    .btn[data-remind]:disabled { opacity: .6; }   /* "Reminded today ✓" stays readable */
 
     /* ================= The card =================
        Layers, back to front: metal + brushed lines (background) -> light that follows the
@@ -1979,7 +1980,30 @@
   }
 
   // ---------- 9. Payment detail ----------
+  // "Remind": sign a short text (proves it's your payment), then Kiyu nudges their phone. Once a day.
+  async function remind(btn) {
+    const id = btn.dataset.remind, them = btn.dataset.who;
+    btn.disabled = true; const label = btn.textContent; btn.textContent = "Sending reminder…";
+    try {
+      const signedAt = new Date().toISOString();
+      const signature = await signText(`Remind them about my Kiyu payment.\n\nAccount: ${account}\nPayment: #${id}\nTime: ${signedAt}`);
+      const r = await fetch(KIYU_API + "/remind", { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ address: account, id, signedAt, signature }) });
+      const out = await r.json().catch(() => ({}));
+      if (r.status === 429 && out.hours) { store.set(`kiyu.reminded.${id}`, String(Date.now() - (24 - out.hours) * 3600 * 1000)); btn.textContent = "Reminded today ✓"; return toast(out.error); }
+      if (!r.ok) throw new Error(out.error || `server said ${r.status}`);
+      if (!out.delivered) { btn.disabled = false; btn.textContent = label; return toast(`${them} hasn't turned on alerts yet, so the reminder can't reach them`); }
+      store.set(`kiyu.reminded.${id}`, String(Date.now()));
+      btn.textContent = "Reminded today ✓";
+      toast(`Reminder sent to ${them}`);
+    } catch (e) {
+      btn.disabled = false; btn.textContent = label;
+      toast(/user rejected|denied|cancel/i.test(e?.shortMessage || e?.message || "") ? "Reminder not sent" : (e.message || "Couldn't send the reminder. Try again"));
+    }
+  }
   document.addEventListener("click", (e) => {
+    const rb = e.target.closest("button[data-remind]");
+    if (rb) return remind(rb);
     const act = e.target.closest("button[data-fn]");
     if (act) return write(act.dataset.fn, [BigInt(act.dataset.id)], undefined, act);
     const row = e.target.closest("[data-open]");
@@ -2014,6 +2038,10 @@
       actions += `<button class="btn full" data-fn="reject" data-id="${p.id}">Decline</button>`;
     }
     if (!p.incoming && p.status === 0 && !left) actions += `<button class="btn white full" data-fn="refund" data-id="${p.id}">Take it back</button>`;
+    if (!p.incoming && p.status === 0 && left && KIYU_API) {
+      const done = Date.now() - Number(store.get(`kiyu.reminded.${p.id}`) || 0) < 24 * 3600 * 1000;   // reminded in the last day
+      actions += `<button class="btn full" data-remind="${p.id}" data-who="${handle(p.recipient)}" ${done ? "disabled" : ""}>${done ? "Reminded today ✓" : `Remind ${handle(p.recipient)}`}</button>`;
+    }
     if (p.incoming && !p.reported) actions += `<button class="btn link full" data-fn="report" data-id="${p.id}">Report sender</button>`;
 
     $("dTitle").textContent = "";
